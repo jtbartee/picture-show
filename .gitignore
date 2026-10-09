@@ -1,0 +1,14 @@
+.DS_Store
+node_modules/
+*.log
+tools/cdp-profile/
+evil-test.html
+
+# Large pipeline intermediates. Regenerate with tools/scrape.mjs + tools/resolve.mjs.
+# The finished catalogue (data/cinema-data.json) IS committed, so `node build.mjs`
+# works on a fresh clone without the two-hour resolve.
+data/all_films.json
+data/all_desc.json
+data/cands.jsonl
+__pycache__/
+*.pyc

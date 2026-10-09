@@ -1,0 +1,152 @@
+</head>
+<body>
+<a class="skip" href="#board">Skip to the programme</a>
+
+<div id="house">
+
+  <!-- the screen, behind the curtains -->
+  <div id="stage" aria-hidden="true" inert>
+    <div id="screen">
+      <video id="vid" playsinline preload="metadata"></video>
+    </div>
+  </div>
+
+  <!-- curtains -->
+  <div id="curtains" aria-hidden="true">
+    <div class="curtain l"></div>
+    <div class="curtain r"></div>
+    <div id="valance"></div>
+  </div>
+
+  <div id="spin" hidden aria-hidden="true"></div>
+
+  <!-- ===================== LOBBY / PROGRAMME ===================== -->
+  <main id="board">
+   <div id="sheet">
+
+    <header id="marquee">
+      <h1 id="logo">NITRATE</h1>
+      <div id="bulbs" aria-hidden="true"></div>
+      <p id="tagline">A repertory cinema for the Internet Archive</p>
+      <span id="count"></span>
+    </header>
+
+    <div id="tools">
+      <div class="field">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"/><path d="M20 20l-4.3-4.3"/>
+        </svg>
+        <input id="q" type="search" placeholder="Search every title…" aria-label="Search every film title"
+               autocomplete="off" spellcheck="false">
+      </div>
+      <button class="btn primary" id="surprise">🎲 <span>Surprise me</span></button>
+      <button class="btn" id="btnSeen" hidden>Recently watched</button>
+    </div>
+
+    <!-- genre board -->
+    <div id="genreBoard">
+      <div class="sec" data-sec="genre"><h2>By genre</h2><div class="chips"></div></div>
+      <div class="sec" data-sec="world"><h2>World cinema</h2><div class="chips"></div></div>
+      <div class="sec" data-sec="era"><h2>Form &amp; era</h2><div class="chips"></div></div>
+      <div class="sec" data-sec="decade"><h2>By decade</h2><div class="chips"></div></div>
+      <div class="sec" data-sec="misc"><h2>Everything else</h2><div class="chips"></div></div>
+    </div>
+
+    <!-- film list for one genre / search results -->
+    <section id="showcase" hidden aria-live="polite">
+      <div id="scHead">
+        <div>
+          <h2 id="scTitle"></h2>
+          <p id="scMeta"></p>
+        </div>
+        <div id="scCtl">
+          <label class="sr" for="sort">Sort films by</label>
+          <select id="sort">
+            <option value="dl">Most watched</option>
+            <option value="year">Earliest first</option>
+            <option value="yeard">Latest first</option>
+            <option value="title">Title A–Z</option>
+            <option value="rand">Shuffled</option>
+          </select>
+          <button class="btn" id="scRandom">🎲 <span>Random here</span></button>
+          <button class="btn" id="scBack">← <span>All genres</span></button>
+        </div>
+      </div>
+      <ul class="grid" id="grid"></ul>
+      <p id="empty" hidden>Nothing in this part of the vault. Try another genre.</p>
+      <button class="btn" id="more" hidden>Show more titles</button>
+    </section>
+
+    <footer id="credit">
+      <p><strong>Every film here is streamed directly from the Internet Archive.</strong>
+         NITRATE is only a lobby — it stores no video and hosts nothing. All titles come from the
+         <a href="https://archive.org/details/feature_films" target="_blank" rel="noopener noreferrer">Feature Films</a>
+         collection at <a href="https://archive.org" target="_blank" rel="noopener noreferrer">archive.org</a>,
+         a non-profit library. Please consider
+         <a href="https://archive.org/donate" target="_blank" rel="noopener noreferrer">donating to them</a> —
+         they pay for the bandwidth this page uses.</p>
+      <p>Films are listed here because the Archive distributes them as public domain or under an open
+         licence. Rights vary by country and the Archive's item page is the authority — every title
+         links back to it. Posters and metadata are the Archive's. Genre groupings are guessed from
+         Archive metadata by hand-written rules, so expect the odd mis-filing.</p>
+      <p id="genStamp"></p>
+    </footer>
+
+   </div>
+  </main>
+
+  <!-- ===================== PLAYER CHROME ===================== -->
+  <div id="player" hidden>
+    <div id="pTop">
+      <div>
+        <h2 id="pTitle"></h2>
+        <p id="pSub"></p>
+      </div>
+      <div id="pTopBtns">
+        <button class="btn" id="pInfo" aria-expanded="false" aria-controls="pAbout">ⓘ <span>About</span></button>
+        <a class="btn" id="pArchive" href="#" target="_blank" rel="noopener noreferrer">Archive page ↗</a>
+        <button class="btn" id="pShare">Copy link</button>
+        <button class="btn primary" id="pExit">✕ <span>Lights up</span></button>
+      </div>
+    </div>
+
+    <div id="pAbout" hidden>
+      <h3 id="pAboutH">About this film</h3>
+      <p id="pAboutBody">…</p>
+      <p id="pAboutCredit"></p>
+    </div>
+
+    <div id="pBot">
+      <div id="bar" role="slider" tabindex="0" aria-label="Seek through the film"
+           aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0 seconds">
+        <div class="track"><div class="buf"></div><div class="fill"></div><div class="knob"></div></div>
+      </div>
+      <div id="pRow">
+        <button class="ibtn" id="pPlay" aria-label="Play"><svg id="icPlay" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+        <button class="ibtn" id="pBack10" aria-label="Back 10 seconds"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z"/></svg></button>
+        <button class="ibtn" id="pFwd30" aria-label="Forward 30 seconds"><svg viewBox="0 0 24 24"><path d="M12 5V1l5 5-5 5V7a6 6 0 1 0 6 6h2a8 8 0 1 1-8-8z"/></svg></button>
+        <span id="time">0:00 / 0:00</span>
+        <div id="volWrap">
+          <button class="ibtn" id="pMute" aria-label="Mute"><svg id="icVol" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z"/></svg></button>
+          <label class="sr" for="vol">Volume</label>
+          <input id="vol" type="range" min="0" max="1" step="0.02" value="1">
+        </div>
+        <div class="spacer"></div>
+        <button class="btn" id="pNext">Next in genre →</button>
+        <button class="ibtn" id="pFull" aria-label="Fullscreen"><svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm0-4h3V8H5v5h2v-3zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- playback failure -->
+  <div id="oops" hidden role="alertdialog" aria-labelledby="oopsH">
+    <h3 id="oopsH">That reel won't thread</h3>
+    <p id="oopsP">This print won't play in your browser. The Archive's own player may still manage it.</p>
+    <div class="row">
+      <a class="btn" id="oopsLink" href="#" target="_blank" rel="noopener noreferrer">Open on archive.org ↗</a>
+      <button class="btn" id="oopsRand">🎲 Try another film</button>
+      <button class="btn primary" id="oopsClose">Back to the lobby</button>
+    </div>
+  </div>
+
+</div>
