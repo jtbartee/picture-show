@@ -4,9 +4,9 @@ function ok(l,cond,x=''){ console.log((cond?'  PASS  ':'  FAIL  ')+l+(x?' — '+
 await c.send('Page.navigate',{url:'http://localhost:8733/index.html?cb='+Date.now()+'#/g/western'}); await sleep(3000);
 
 // a film whose every print is nonsense: the chain should exhaust, then explain itself
-await c.eval(`(()=>{const f=Object.assign({},NITRATE.view.films[0],
-  {id:'nitrate-does-not-exist',video:'nope.mp4',alts:['also-nope.mp4'],title:'A Reel That Will Not Thread'});
-  NITRATE.playFilm(f,null);})()`);
+await c.eval(`(()=>{const f=Object.assign({},PICTURE_SHOW.view.films[0],
+  {id:'picture-show-does-not-exist',video:'nope.mp4',alts:['also-nope.mp4'],title:'A Reel That Will Not Thread'});
+  PICTURE_SHOW.playFilm(f,null);})()`);
 let shown=false;
 for(let i=0;i<30;i++){ await sleep(500); if(!(await c.eval(`document.getElementById('oops').hidden`))){shown=true;break;} }
 ok('failure dialog appears after the chain is exhausted', shown);
@@ -18,6 +18,6 @@ ok('spinner was cleared', await c.eval(`document.getElementById('spin').hidden`)
 await c.eval(`document.getElementById('oopsRand').click()`); await sleep(900);
 ok('"try another" recovers', (await c.eval(`document.getElementById('oops').hidden`)) && (await c.eval(`document.body.classList.contains('playing')`)));
 // and back to the lobby cleanly
-await c.eval(`NITRATE.closeCurtains()`); await sleep(2400);
+await c.eval(`PICTURE_SHOW.closeCurtains()`); await sleep(2400);
 ok('returns to the lobby', !(await c.eval(`document.body.classList.contains('open')`)));
 c.close();

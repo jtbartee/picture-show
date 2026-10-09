@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>NITRATE — a repertory cinema for the Internet Archive</title>
+<title>Picture Show — a repertory cinema for the Internet Archive</title>
 <meta name="description" content="Browse and watch thousands of public-domain feature films from the Internet Archive, sorted by genre, era and world cinema. Pick a genre, pick a title, and the curtains part.">
 <meta name="color-scheme" content="dark">
-<meta property="og:title" content="NITRATE — a repertory cinema">
+<meta property="og:title" content="Picture Show — a repertory cinema">
 <meta property="og:description" content="Thousands of public-domain features from the Internet Archive. Pick a genre, pick a title, the curtains part.">
 <meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%230a0708'/><text y='74' x='50' text-anchor='middle' font-size='68'>🎬</text></svg>">
@@ -16,7 +16,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Limelight&family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=Barlow+Condensed:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   NITRATE — a repertory cinema for the Internet Archive
+   PICTURE SHOW — a repertory cinema for the Internet Archive
    ============================================================ */
 *,*::before,*::after{box-sizing:border-box}
 :root{
@@ -29,7 +29,7 @@
   --focus:#ffd75e;
   --curtain-ease:cubic-bezier(.62,.03,.3,1);
   --t-curtain:2100ms;
-  --fs-logo:clamp(2.1rem,7vw,4.6rem);
+  --fs-logo:clamp(1.55rem,5.1vw,3.5rem);
 }
 html,body{height:100%}
 body{
@@ -147,7 +147,8 @@ body.open #board{opacity:0;transform:scale(.97);pointer-events:none}
 #marquee{text-align:center;max-width:62rem;margin:0 auto 2.2rem}
 #logo{
   font-family:'Limelight',Georgia,serif;font-size:var(--fs-logo);
-  letter-spacing:.14em;line-height:1;margin:0;
+  letter-spacing:.14em;line-height:1.08;margin:0;
+  text-wrap:balance;
   color:var(--cream);
   text-shadow:0 0 .07em rgba(255,221,130,.55),0 0 .4em rgba(201,162,39,.35),0 .05em 0 #000;
 }
@@ -403,7 +404,7 @@ body.playing.idle{cursor:none}
    <div id="sheet">
 
     <header id="marquee">
-      <h1 id="logo">NITRATE</h1>
+      <h1 id="logo">PICTURE SHOW</h1>
       <div id="bulbs" aria-hidden="true"></div>
       <p id="tagline">A repertory cinema for the Internet Archive</p>
       <span id="count"></span>
@@ -457,7 +458,7 @@ body.playing.idle{cursor:none}
 
     <footer id="credit">
       <p><strong>Every film here is streamed directly from the Internet Archive.</strong>
-         NITRATE is only a lobby — it stores no video and hosts nothing. All titles come from the
+         Picture Show is only a lobby — it stores no video and hosts nothing. All titles come from the
          <a href="https://archive.org/details/feature_films" target="_blank" rel="noopener noreferrer">Feature Films</a>
          collection at <a href="https://archive.org" target="_blank" rel="noopener noreferrer">archive.org</a>,
          a non-profit library. Please consider
@@ -579,9 +580,14 @@ function shuffled(arr){
 function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 
 /* ================= persisted state ================= */
-var LS='nitrate.v1';
+var LS='pictureshow.v1';
+var LS_OLD='nitrate.v1';           /* this page was called NITRATE until Oct 2026 */
 var store={seen:{},pos:{}};
-try{ var raw=localStorage.getItem(LS); if(raw) store=Object.assign(store,JSON.parse(raw)); }catch(e){}
+try{
+  var raw=localStorage.getItem(LS);
+  if(!raw){ raw=localStorage.getItem(LS_OLD); if(raw) localStorage.setItem(LS,raw); }
+  if(raw) store=Object.assign(store,JSON.parse(raw));
+}catch(e){}
 var saveT=null;
 function save(){
   if(saveT) return;
@@ -791,7 +797,7 @@ function playFilm(f,cat){
   nxt.textContent=(currentCat&&currentCat.films.length>1)
     ? 'Next in '+currentCat.label+' \u2192'
     : '\uD83C\uDFB2 Another film';
-  document.title=f.title+' — NITRATE';
+  document.title=f.title+' — Picture Show';
 
   player.hidden=false;
   spin.hidden=false;
@@ -823,7 +829,7 @@ function closeCurtains(){
     if(!body.classList.contains('playing')){ vid.removeAttribute('src'); vid.load(); player.hidden=true; }
   },reduce?30:2200);
   spin.hidden=true; oops.hidden=true;
-  document.title='NITRATE — a repertory cinema for the Internet Archive';
+  document.title='Picture Show — a repertory cinema for the Internet Archive';
   if(document.fullscreenElement) document.exitFullscreen().catch(function(){});
   current=null;
   /* back to wherever we were browsing */
@@ -1187,7 +1193,7 @@ route();
 
 /* A deliberate handle for the browser test harness in tools/. Harmless to ship:
    everything here is already reachable by clicking. */
-window.NITRATE={FILMS:FILMS,CATS:CATS,byId:FILM_BY_ID,playFilm:playFilm,
+window.PICTURE_SHOW={FILMS:FILMS,CATS:CATS,byId:FILM_BY_ID,playFilm:playFilm,
   closeCurtains:closeCurtains,showShowcase:showShowcase,search:searchFilms,view:view,
   renderAbout:renderAbout,plainText:plainText};
 

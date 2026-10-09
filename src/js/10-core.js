@@ -45,9 +45,14 @@ function shuffled(arr){
 function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 
 /* ================= persisted state ================= */
-var LS='nitrate.v1';
+var LS='pictureshow.v1';
+var LS_OLD='nitrate.v1';           /* this page was called NITRATE until Oct 2026 */
 var store={seen:{},pos:{}};
-try{ var raw=localStorage.getItem(LS); if(raw) store=Object.assign(store,JSON.parse(raw)); }catch(e){}
+try{
+  var raw=localStorage.getItem(LS);
+  if(!raw){ raw=localStorage.getItem(LS_OLD); if(raw) localStorage.setItem(LS,raw); }
+  if(raw) store=Object.assign(store,JSON.parse(raw));
+}catch(e){}
 var saveT=null;
 function save(){
   if(saveT) return;

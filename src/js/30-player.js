@@ -34,7 +34,7 @@ function playFilm(f,cat){
   nxt.textContent=(currentCat&&currentCat.films.length>1)
     ? 'Next in '+currentCat.label+' \u2192'
     : '\uD83C\uDFB2 Another film';
-  document.title=f.title+' — NITRATE';
+  document.title=f.title+' — Picture Show';
 
   player.hidden=false;
   spin.hidden=false;
@@ -66,7 +66,7 @@ function closeCurtains(){
     if(!body.classList.contains('playing')){ vid.removeAttribute('src'); vid.load(); player.hidden=true; }
   },reduce?30:2200);
   spin.hidden=true; oops.hidden=true;
-  document.title='NITRATE — a repertory cinema for the Internet Archive';
+  document.title='Picture Show — a repertory cinema for the Internet Archive';
   if(document.fullscreenElement) document.exitFullscreen().catch(function(){});
   current=null;
   /* back to wherever we were browsing */

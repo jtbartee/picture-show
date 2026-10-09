@@ -16,7 +16,7 @@ async function scrape(fields, outFile) {
     let json = null;
     for (let tries = 0; tries < 5 && !json; tries++) {
       try {
-        const res = await fetch(url, { headers: { 'User-Agent': 'nitrate-dataset-build/1.0' } });
+        const res = await fetch(url, { headers: { 'User-Agent': 'picture-show-dataset-build/1.0' } });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         json = await res.json();
       } catch (e) {

@@ -1,6 +1,6 @@
 <style>
 /* ============================================================
-   NITRATE — a repertory cinema for the Internet Archive
+   PICTURE SHOW — a repertory cinema for the Internet Archive
    ============================================================ */
 *,*::before,*::after{box-sizing:border-box}
 :root{
@@ -13,7 +13,7 @@
   --focus:#ffd75e;
   --curtain-ease:cubic-bezier(.62,.03,.3,1);
   --t-curtain:2100ms;
-  --fs-logo:clamp(2.1rem,7vw,4.6rem);
+  --fs-logo:clamp(1.55rem,5.1vw,3.5rem);
 }
 html,body{height:100%}
 body{
@@ -131,7 +131,8 @@ body.open #board{opacity:0;transform:scale(.97);pointer-events:none}
 #marquee{text-align:center;max-width:62rem;margin:0 auto 2.2rem}
 #logo{
   font-family:'Limelight',Georgia,serif;font-size:var(--fs-logo);
-  letter-spacing:.14em;line-height:1;margin:0;
+  letter-spacing:.14em;line-height:1.08;margin:0;
+  text-wrap:balance;
   color:var(--cream);
   text-shadow:0 0 .07em rgba(255,221,130,.55),0 0 .4em rgba(201,162,39,.35),0 .05em 0 #000;
 }

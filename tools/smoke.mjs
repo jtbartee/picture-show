@@ -23,7 +23,7 @@ function ok(label,cond,extra=''){ console.log((cond?'  PASS  ':'  FAIL  ')+label
 await c.send('Page.navigate',{url:URL_BASE});
 await sleep(1800);
 const t=await c.eval('document.title');
-ok('page loads', /NITRATE/.test(t), t);
+ok('page loads', /Picture Show/.test(t), t);
 ok('data present', await c.eval('!!window.CINEMA_DATA && CINEMA_DATA.films.length>0'));
 const nFilms=await c.eval('CINEMA_DATA.films.length');
 const nChips=await c.eval('document.querySelectorAll("#genreBoard .chip").length');
@@ -89,7 +89,7 @@ ok('deep link has a genre behind it', !(await c.eval('document.getElementById("s
 // ---- uploader-supplied HTML must never execute
 await c.eval(`location.hash='#/'`); await sleep(300);
 const xss=await c.eval(`(()=>{window.__pwned=false;
-  NITRATE.renderAbout({id:'x',year:1999},{metadata:{description:
+  PICTURE_SHOW.renderAbout({id:'x',year:1999},{metadata:{description:
     '<img src=x onerror="window.__pwned=true">hello <b>there</b><script>window.__pwned=true<\\/script>'}});
   return {text:document.getElementById('pAboutBody').textContent,
           kids:document.querySelectorAll('#pAboutBody *').length};})()`);

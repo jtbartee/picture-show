@@ -132,6 +132,6 @@ route();
 
 /* A deliberate handle for the browser test harness in tools/. Harmless to ship:
    everything here is already reachable by clicking. */
-window.NITRATE={FILMS:FILMS,CATS:CATS,byId:FILM_BY_ID,playFilm:playFilm,
+window.PICTURE_SHOW={FILMS:FILMS,CATS:CATS,byId:FILM_BY_ID,playFilm:playFilm,
   closeCurtains:closeCurtains,showShowcase:showShowcase,search:searchFilms,view:view,
   renderAbout:renderAbout,plainText:plainText};

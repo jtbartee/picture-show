@@ -6,9 +6,9 @@ await c.send('Emulation.setDeviceMetricsOverride',{width:1440,height:960,deviceS
 await c.send('Page.navigate',{url:'http://localhost:8733/index.html#/g/horror'});
 await sleep(2500);
 // pick a film that definitely has an IA derivative
-const idx=await c.eval(`(()=>{const v=NITRATE.view.films.findIndex(f=>/\\.ia\\.mp4$/i.test(f.video));return v<0?0:v})()`);
-console.log('playing index',idx, await c.eval(`NITRATE.view.films[${idx}].title`));
-await c.eval(`NITRATE.playFilm(NITRATE.view.films[${idx}],NITRATE.view.cat)`);
+const idx=await c.eval(`(()=>{const v=PICTURE_SHOW.view.films.findIndex(f=>/\\.ia\\.mp4$/i.test(f.video));return v<0?0:v})()`);
+console.log('playing index',idx, await c.eval(`PICTURE_SHOW.view.films[${idx}].title`));
+await c.eval(`PICTURE_SHOW.playFilm(PICTURE_SHOW.view.films[${idx}],PICTURE_SHOW.view.cat)`);
 await sleep(500);  await c.shot(`${SH}/03a-curtain-parting.png`);
 await sleep(900);  await c.shot(`${SH}/03b-curtain-open.png`);
 // wait for real frames then nudge past the leader

@@ -2,7 +2,7 @@ import { connect, sleep } from './cdp.mjs';
 const c=await connect(9333);
 await c.send('Runtime.enable');
 await c.send('Page.navigate',{url:`http://localhost:8733/index.html?cb=${Date.now()}#/g/horror`}); await sleep(2600);
-await c.eval(`NITRATE.playFilm(NITRATE.view.films[1],NITRATE.view.cat)`); await sleep(900);
+await c.eval(`PICTURE_SHOW.playFilm(PICTURE_SHOW.view.films[1],PICTURE_SHOW.view.cat)`); await sleep(900);
 await c.eval(`document.getElementById('pInfo').click()`);
 let body='';
 for(let i=0;i<20;i++){ await sleep(500);
@@ -17,7 +17,7 @@ console.log('tags injected into panel:',await c.eval(`document.querySelectorAll(
 // XSS probe: feed the renderer hostile markup directly
 const xss=await c.eval(`(()=>{window.__pwned=false;
   const f={id:'x',year:1999};
-  NITRATE.renderAbout(f,{metadata:{description:'<img src=x onerror="window.__pwned=true">hello <b>there</b>',uploader:'u'}});
+  PICTURE_SHOW.renderAbout(f,{metadata:{description:'<img src=x onerror="window.__pwned=true">hello <b>there</b>',uploader:'u'}});
   return {text:document.getElementById('pAboutBody').textContent, kids:document.querySelectorAll('#pAboutBody *').length};})()`);
 await sleep(400);
 console.log('xss render:',JSON.stringify(xss),' pwned:',await c.eval('window.__pwned'));

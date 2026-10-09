@@ -1,10 +1,10 @@
-# NITRATE
+# Picture Show
 
 **A repertory cinema for the Internet Archive.**
 
 The Archive's [Feature Films](https://archive.org/details/feature_films) collection holds
-tens of thousands of public-domain features — and browsing it is a chore. NITRATE is a
-lobby for it: pick a genre, pick a title, the curtains part, and the film begins.
+tens of thousands of public-domain features — and browsing it is a chore. Picture Show
+is a lobby for it: pick a genre, pick a title, the curtains part, and the film begins.
 Nothing opens in a new tab.
 
 **24,272 films · 26,401 hours · 64 ways in.** One self-contained HTML file.
@@ -82,7 +82,7 @@ Browser tests drive a headless Chrome over CDP (no npm dependencies):
 
 ```sh
 python3 -m http.server 8733 &
-"$CHROME" --headless=new --remote-debugging-port=9333 --user-data-dir=/tmp/nitrate-cdp &
+"$CHROME" --headless=new --remote-debugging-port=9333 --user-data-dir=/tmp/picture-show-cdp &
 node tools/smoke.mjs      # the whole lobby → genre → play → exit → search flow
 node tools/playtest.mjs   # do the films actually decode?
 ```

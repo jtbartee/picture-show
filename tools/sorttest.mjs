@@ -5,7 +5,7 @@ await c.send('Page.navigate',{url:'http://localhost:8733/index.html?cb='+Date.no
 async function setSort(v){
   await c.eval(`(()=>{const s=document.getElementById('sort');s.value='${v}';s.dispatchEvent(new Event('change'))})()`);
   await sleep(700);
-  return await c.eval(`NITRATE.view.films.slice(0,80).map(f=>({t:f.title,y:f.year,d:f.dl}))`);
+  return await c.eval(`PICTURE_SHOW.view.films.slice(0,80).map(f=>({t:f.title,y:f.year,d:f.dl}))`);
 }
 let a=await setSort('dl');
 ok('most watched is descending by downloads', a.every((x,i)=>i===0||a[i-1].d>=x.d), a.slice(0,2).map(x=>x.d).join(' >= '));
@@ -22,6 +22,6 @@ const r2=(await setSort('rand')).map(x=>x.t).join();
 ok('shuffled actually reshuffles', r1!==r2);
 // the grid must match the model
 const firstCard=await c.eval(`document.querySelector('#grid .card .t').textContent`);
-const firstModel=await c.eval(`NITRATE.view.films[0].title`);
+const firstModel=await c.eval(`PICTURE_SHOW.view.films[0].title`);
 ok('grid matches the sorted model', firstCard===firstModel, firstCard);
 c.close();
