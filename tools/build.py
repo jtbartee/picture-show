@@ -35,6 +35,47 @@ def best_videos(r):
     usable=[c for c in cands if vid_rank(c)[0] < 90]
     return usable
 
+# ---------- split an item into programmes (episodes)
+# An Archive item is very often a whole series, or a season, in one upload. The
+# Archive names each derivative after the file it was made from, so
+# "S01E03.mp4", "S01E03.ia.mp4" and "S01E03_512kb.mp4" are three encodes of ONE
+# episode, while "S01E04.ia.mp4" is a different programme entirely. Grouping by
+# the stem with the derivative marker stripped tells those two cases apart.
+#
+# This matters twice over. It is what makes every episode reachable -- across
+# the catalogue 2,097 items hold 49,379 programmes, so without it ~47,000 of
+# them have no way in. And it fixes the fallback chain, which used to be built
+# from "the next two files in the item": on a series that meant episode 2 was
+# offered as a second print of episode 1, so a decode failure dropped the viewer
+# into the wrong instalment instead of the same one in another codec.
+#
+# Only the Archive's own derivative markers are stripped. Everything else a
+# filename ends in -- "2", "a", "_ddcolor", "-01-01" -- marks a genuinely
+# different file, and those are separate programmes.
+EXT_RE=re.compile(r'\.(mp4|m4v|webm|ogv)$', re.I)
+DERIV_RE=re.compile(r'(\.ia|_(?:512|256|64)kb)$', re.I)
+
+def prog_stem(name):
+    s=EXT_RE.sub('', str(name))
+    while True:
+        s2=DERIV_RE.sub('', s)
+        if s2==s: return s
+        s=s2
+
+def natkey(s):
+    # digits compare as numbers, so "2/" sorts before "10/"
+    return [(int(t),'') if t.isdigit() else (0,t)
+            for t in re.split(r'(\d+)', s.lower()) if t!='']
+
+def programmes(r):
+    """[[best encode, ...other encodes], ...] -- one list per programme, in
+    viewing order. best_videos has already dropped the undecodable and sorted
+    by encode quality, and that order survives the grouping."""
+    groups={}
+    for c in best_videos(r):
+        groups.setdefault(prog_stem(c['n']).lower(), []).append(c)
+    return [groups[k] for k in sorted(groups, key=natkey)]
+
 def S(v):
     if isinstance(v,list): return ' '.join(str(x) for x in v if x is not None)
     return str(v or '')
@@ -185,8 +226,12 @@ for f in films:
     stats['total']+=1
     if not r: stats['unresolved']+=1; continue
     if r.get('err'): stats['fetch_error']+=1; continue
-    vids=best_videos(r)
-    if not vids: stats['no_playable_video']+=1; continue
+    progs=programmes(r)
+    if not progs: stats['no_playable_video']+=1; continue
+    # the first programme is what the card plays; the rest are the episode list,
+    # which the page fetches from the metadata API when the viewer asks for it
+    vids=progs[0]
+    if len(progs)>1: stats['multi_programme']+=1
     if vids[0].get('o'): stats['only_original']+=1
     title=clean_text(f.get('title')) or fid
     if SPAM_TITLE.match(title): stats['spam']+=1; continue
@@ -198,6 +243,7 @@ for f in films:
     recs.append({
         'id':fid,'title':title,'year':get_year(f),
         'v':vids[0]['n'],'alts':[c['n'] for c in vids[1:3]],
+        'eps':len(progs) if len(progs)>1 else 0,
         'dl':int(f.get('downloads') or 0),'secs':get_secs(f,r,vids[0]),
         'h':vids[0].get('h') or 0,'sz':vids[0].get('s') or 0,
         'creator':clean_text(f.get('creator'))[:80],
@@ -308,7 +354,7 @@ recs.sort(key=lambda x:-x['dl'])
 films_out=[]
 for x in recs:
     g=sorted(catidx[k] for k in x['keys'] if k in catidx)
-    films_out.append([x['id'],x['title'],x['v'],x['year'] or 0,x['dl'],x['secs'] or 0,g,x['creator'],x['alts']])
+    films_out.append([x['id'],x['title'],x['v'],x['year'] or 0,x['dl'],x['secs'] or 0,g,x['creator'],x['alts'],x['eps']])
 
 out={
  'generated':__import__('datetime').date.today().isoformat(),
@@ -317,7 +363,7 @@ out={
             ['saturdaymorningcartoons','Saturday Morning Cartoons'],
             ['classic_tv_1980s','Classic TV: 1980s']],
  'cats':[[c[0],c[1],c[2],c[3]] for c in cats],
- 'fields':['id','title','video','year','downloads','seconds','cats','creator','alts'],
+ 'fields':['id','title','video','year','downloads','seconds','cats','creator','alts','episodes'],
  'films':films_out,
 }
 json.dump(out,open(D+'cinema-data.json','w'),ensure_ascii=False,separators=(',',':'))

@@ -104,7 +104,8 @@ function renderMore(){
 function cardFor(f){
   var li=el('li','card');
   var b=el('button');
-  b.setAttribute('aria-label',f.title+(f.year?', '+f.year:'')+'. Play film.');
+  b.setAttribute('aria-label',f.title+(f.year?', '+f.year:'')
+    +(f.eps>1?', '+f.eps+' programmes in this item. Play the first.':'. Play film.'));
 
   var p=el('div','poster');
   var ph=el('div','ph',f.title);
@@ -117,6 +118,12 @@ function cardFor(f){
   p.appendChild(img);
 
   if(f.secs>60) p.appendChild(el('span','dur',hms(f.secs)));
+  /* An item holding more than one programme should say so -- the duration
+     beside it is only the first one's. "Programmes" and not "episodes": most of
+     these are a series, but some are the alternate prints of one picture or a
+     dozen unrelated films in one upload, and the metadata never says which.
+     The drawer shows each runtime, which answers it at a glance. */
+  if(f.eps>1) p.appendChild(el('span','eps',nfmt(f.eps)+' programmes'));
   var pr=progressOf(f);
   if(pr>0){
     var s=el('div','seen'); var i2=el('i');

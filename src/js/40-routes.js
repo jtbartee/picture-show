@@ -13,7 +13,9 @@ function route(){
   if(suppressHash) return;
   var h=location.hash.replace(/^#\/?/,'');
   var m;
-  if((m=h.match(/^f\/(.+)$/))){
+  /* #/f/<id> plays the item, #/f/<id>/e/<programme> one episode of it. An
+     Archive identifier never contains a slash, so the two cannot be confused. */
+  if((m=h.match(/^f\/([^\/]+)(?:\/e\/(.+))?$/))){
     var f=FILM_BY_ID[decodeURIComponent(m[1])];
     if(f){
       /* make sure there's something behind the film to come back to */
@@ -21,7 +23,8 @@ function route(){
         var c=f.cats.length?CATS[f.cats[0]]:null;
         if(c) showShowcase(c,'');
       }
-      playFilm(f,view.cat||(f.cats.length?CATS[f.cats[0]]:null));
+      playFilm(f,view.cat||(f.cats.length?CATS[f.cats[0]]:null),
+               m[2]?decodeURIComponent(m[2]):null);
       return;
     }
   }
@@ -95,6 +98,9 @@ document.addEventListener('keydown',function(ev){
   if(ev.key==='Escape'){
     if(!oops.hidden){ closeCurtains(); return; }
     if(!pAbout.hidden){ ev.preventDefault(); closeAbout(); pInfo.focus(); return; }
+    /* before the "lights up" branch, and before the typing branch: Escape in
+       the episode filter should close the drawer, not empty the auditorium */
+    if(!pEps.hidden){ ev.preventDefault(); closeEps(); epBtn.focus(); return; }
     if(body.classList.contains('playing')){ ev.preventDefault(); closeCurtains(); return; }
     if(typing){ qInput.value=''; setHash('#/'); t.blur(); return; }
   }
@@ -113,6 +119,7 @@ document.addEventListener('keydown',function(ev){
       case 'm': vid.muted=!vid.muted; syncVol(); break;
       case 'f': ev.preventDefault(); toggleFull(); break;
       case 'n': $('#pNext').click(); break;
+      case 'e': if(!epBtn.hidden){ ev.preventDefault(); pEps.hidden?openEps():closeEps(); } break;
     }
     return;
   }
@@ -134,4 +141,10 @@ route();
    everything here is already reachable by clicking. */
 window.PICTURE_SHOW={FILMS:FILMS,CATS:CATS,byId:FILM_BY_ID,playFilm:playFilm,
   closeCurtains:closeCurtains,showShowcase:showShowcase,search:searchFilms,view:view,
-  renderAbout:renderAbout,plainText:plainText};
+  renderAbout:renderAbout,plainText:plainText,
+  programmesOf:programmesOf,progStem:progStem,playEpisode:playEpisode,
+  openEps:openEps,closeEps:closeEps,
+  eps:function(){ return currentEps; },
+  ep:function(){ return currentEp; },
+  prints:function(){ return curPrints; },
+  posKeyNow:function(){ return curPosKey; }};

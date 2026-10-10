@@ -107,6 +107,7 @@
         <p id="pSub"></p>
       </div>
       <div id="pTopBtns">
+        <button class="btn" id="pEpBtn" aria-expanded="false" aria-controls="pEps" hidden>☰ <span>Episodes</span></button>
         <button class="btn" id="pInfo" aria-expanded="false" aria-controls="pAbout">ⓘ <span>About</span></button>
         <a class="btn" id="pArchive" href="#" target="_blank" rel="noopener noreferrer">Archive page ↗</a>
         <button class="btn" id="pShare">Copy link</button>
@@ -118,6 +119,25 @@
       <h3 id="pAboutH">About this film</h3>
       <p id="pAboutBody">…</p>
       <p id="pAboutCredit"></p>
+    </div>
+
+    <!-- every programme in this Archive item: episodes of a series, the films in
+         a multi-feature upload, or alternate prints of one picture -->
+    <div id="pEps" hidden>
+      <div id="pEpsHead">
+        <h3 id="pEpsH">In this item</h3>
+        <span id="pEpsCount"></span>
+      </div>
+      <div class="field" id="pEpsFilterWrap" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"/><path d="M20 20l-4.3-4.3"/>
+        </svg>
+        <label class="sr" for="pEpsFilter">Filter this list</label>
+        <input id="pEpsFilter" type="search" placeholder="Filter…" autocomplete="off" spellcheck="false">
+      </div>
+      <p id="pEpsMsg" hidden></p>
+      <ol id="pEpsList" aria-label="Programmes in this item"></ol>
+      <button class="btn" id="pEpsMore" hidden>Show more</button>
     </div>
 
     <div id="pBot">

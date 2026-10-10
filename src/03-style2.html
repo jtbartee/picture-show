@@ -44,6 +44,11 @@
   background:rgba(0,0,0,.78);color:var(--cream);font-size:.72rem;
   padding:.1rem .34rem;border-radius:2px;font-variant-numeric:tabular-nums;
 }
+.poster .eps{ /* this card is a whole series, not one picture */
+  position:absolute;left:.3rem;top:.3rem;z-index:2;
+  background:rgba(122,18,34,.92);color:var(--cream);font-size:.7rem;font-weight:600;
+  letter-spacing:.04em;padding:.1rem .34rem;border-radius:2px;
+}
 .poster .seen{
   position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(0,0,0,.6);z-index:2;
 }
@@ -117,6 +122,49 @@ body.playing.idle{cursor:none}
 #pAbout p{margin:0 0 .6rem;font-size:.95rem;line-height:1.55;color:var(--cream)}
 #pAboutCredit{font-size:.82rem!important;color:var(--cream-dim)!important}
 #pAboutCredit a{color:var(--gold-l)}
+
+/* the episode list, for an item that holds a whole series */
+#pEps{
+  align-self:flex-start;margin:0 clamp(.7rem,2vw,1.3rem);
+  width:min(32rem,calc(100% - 2rem));max-height:52vh;
+  display:flex;flex-direction:column;
+  padding:.9rem 1rem;background:var(--panel);
+  border:1px solid rgba(201,162,39,.4);border-radius:3px;
+  box-shadow:0 1rem 2.5rem rgba(0,0,0,.7);
+}
+#pEpsHead{display:flex;align-items:baseline;gap:.6rem;margin-bottom:.55rem}
+#pEpsH{margin:0;font-family:'Playfair Display',Georgia,serif;
+  font-size:.82rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}
+#pEpsCount{margin-left:auto;font-size:.78rem;color:var(--cream-dim);font-variant-numeric:tabular-nums}
+#pEpsFilterWrap{flex:0 0 auto;margin-bottom:.55rem}
+#pEpsFilterWrap input{padding-block:.42rem;font-size:.9rem}
+#pEpsMsg{margin:.1rem 0 .4rem;font-size:.9rem;color:var(--cream-dim);font-style:italic}
+#pEpsList{
+  list-style:none;margin:0;padding:0;overflow-y:auto;overscroll-behavior:contain;
+  flex:1 1 auto;min-height:0;scrollbar-gutter:stable;
+}
+#pEpsList .sea{ /* a season heading, when the uploader filed episodes in folders */
+  position:sticky;top:0;z-index:1;padding:.42rem .2rem .3rem;
+  background:var(--panel);font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--gold);border-bottom:1px solid rgba(201,162,39,.22);
+}
+#pEpsList .ep button{
+  position:relative;display:flex;align-items:baseline;gap:.6rem;width:100%;text-align:left;
+  padding:.45rem .45rem .5rem;border-radius:2px;border-bottom:1px solid rgba(255,255,255,.07);
+  transition:background .14s;
+}
+#pEpsList .ep button:hover{background:rgba(201,162,39,.14)}
+#pEpsList .ep .n{
+  flex:0 0 2.1rem;text-align:right;font-variant-numeric:tabular-nums;
+  font-size:.78rem;color:var(--cream-dim);
+}
+#pEpsList .ep .t{flex:1 1 auto;font-size:.92rem;line-height:1.3;word-break:break-word}
+#pEpsList .ep .d{flex:0 0 auto;font-size:.76rem;color:var(--cream-dim);font-variant-numeric:tabular-nums}
+#pEpsList .ep .seen{position:absolute;left:.45rem;right:.45rem;bottom:0;height:2px;background:rgba(0,0,0,.5)}
+#pEpsList .ep .seen i{display:block;height:100%;background:var(--velvet-l)}
+#pEpsList .ep[aria-current="true"] button{background:rgba(168,32,47,.34);box-shadow:inset 3px 0 0 var(--gold)}
+#pEpsList .ep[aria-current="true"] .t{color:var(--gold-l);font-weight:600}
+#pEpsMore{flex:0 0 auto;margin:.6rem auto 0;padding:.4rem .8rem;font-size:.74rem}
 
 /* buffering spinner + error card */
 #spin{

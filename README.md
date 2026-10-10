@@ -13,7 +13,7 @@ television — [Saturday Morning Cartoons](https://archive.org/details/saturdaym
 and [Classic TV: 1980s](https://archive.org/details/classic_tv_1980s), which get a board
 section of their own rather than being mixed in among the features.
 
-**28,127 titles · 28,619 hours · 66 ways in.** One self-contained HTML file.
+**28,127 titles · 48,450 programmes · 66 ways in.** One self-contained HTML file.
 
 ![the lobby](docs/lobby.png)
 
@@ -27,15 +27,21 @@ section of their own rather than being mixed in among the features.
   cinemas, forms and decades — derived from the Archive's own metadata by hand-written
   rules. Anything that defies filing lands in **The Vault**, so nothing is unreachable.
 - **Curtains.** Choose a film and the velvet actually rolls back.
+- **Every episode, not just the first.** An Archive item is often a whole series in one
+  upload — *The Bill* arrives as 2,401 episodes under a single identifier. Pick one from the
+  drawer (`e`), with its own runtime, its own resume point and its own link; `n` or the end of
+  an episode rolls on to the next. 1,937 titles here hold more than one programme, 48,450
+  between them.
 - **Random, everywhere.** A *Surprise me* button for the whole vault, a dice on every genre
   (shift-click a genre chip to jump straight into a random film from it), and *Random here*
   inside a genre.
 - **It remembers.** Your place in a film is kept, so a half-watched picture resumes where you
   left it; watched titles show a progress bar in the grid.
-- **Shareable.** Every genre and every film has its own link (`#/f/<archive-id>`), so you can
-  send a friend straight to the picture.
+- **Shareable.** Every genre, every film and every episode has its own link
+  (`#/f/<archive-id>`, `#/f/<archive-id>/e/<episode>`), so you can send a friend straight to
+  the picture.
 - **Keyboard.** `/` search · `space` play/pause · `←/→` 10s (`shift` for a minute) · `↑/↓`
-  volume · `f` fullscreen · `m` mute · `n` next · `r` random · `esc` lights up.
+  volume · `f` fullscreen · `m` mute · `e` episodes · `n` next · `r` random · `esc` lights up.
 
 ## Where the films come from
 
@@ -75,12 +81,23 @@ node build.mjs             # inline the data into index.html
 The collections on the programme are the `COLLECTIONS` list at the top of
 `tools/scrape.mjs`; adding a shelf there is enough to pull it in.
 
-Three things that pipeline gets right, and which are easy to get wrong:
+Four things that pipeline gets right, and which are easy to get wrong:
+
+- **An item is not a film.** The Archive names every derivative after the file it came from,
+  so `S01E03.mp4`, `S01E03.ia.mp4` and `S01E03_512kb.mp4` are three encodes of one episode
+  while `S01E04.ia.mp4` is a different programme. Group by that stem and an item's 4,629 files
+  resolve into 2,401 episodes; don't, and 47,000 episodes have no way in. Only the Archive's
+  own markers (`.ia`, `_512kb`, `_256kb`, `_64kb`) are stripped — a trailing `2`, `a` or
+  `_ddcolor` is somebody's own file and gets its own row, because a false split shows a
+  duplicate while a false merge hides a picture.
 
 - **Prefer the Archive's own derivatives.** A file marked `source=original` is whatever the
   uploader had, often DivX or Xvid in an `.mp4` wrapper, and browsers refuse it outright.
   The Archive's generated encodes (`h.264 IA`, `512Kb MPEG4`) are always H.264 and always
-  play. The player still falls back through the remaining encodes if the first one fails.
+  play. The player still falls back through the remaining encodes if the first one fails —
+  and because the files are grouped first, every print in that chain is the same programme.
+  It used to be "the next two files in the item", which on a series meant a decode failure
+  quietly moved you to episode 2.
 - **A bracket means something different on television.** De-duplication strips bracketed
   asides from a title, because on a feature they are noise — `White Zombie (1932)`,
   `Nosferatu [HD]`. On an episode the bracket *is* the identity: `(Episode 10)`,
@@ -100,12 +117,14 @@ python3 -m http.server 8733 &
 "$CHROME" --headless=new --remote-debugging-port=9333 --user-data-dir=/tmp/picture-show-cdp &
 node tools/smoke.mjs      # the whole lobby → genre → play → exit → search flow
 node tools/playtest.mjs   # do the films actually decode?
+node tools/epstest.mjs    # the episode picker, end to end
 ```
 
 The catalogue pipeline has its own test, which needs neither a browser nor the network:
 
 ```sh
 node tools/dedupetest.mjs # classification and de-duplication rules, on a fixture
+node tools/progtest.mjs   # splitting an item's files into programmes
 ```
 
 ## Credits

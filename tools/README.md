@@ -38,6 +38,14 @@ chosen file and the choice turned out to be wrong, which meant re-fetching every
 
 `build.py` turns raw Archive metadata into a programme:
 
+- **Splits an item into programmes.** A single Archive identifier is very often a whole
+  series, a season, or a dozen unrelated films. Files are grouped by their stem with the
+  Archive's derivative marker removed, which separates "another encode of this episode" from
+  "a different episode": 2,097 items turn out to hold 49,379 programmes. The first programme
+  in natural order is what the catalogue stores; the page fetches the rest from
+  `/metadata/<id>` when the viewer opens the episode drawer, because baking 2,401 filenames
+  per item into `index.html` would cost more than it is worth. Only `episodes` — the count —
+  is baked in, which is enough to know a series on sight.
 - **Picks a browser-safe encode.** Files marked `source=original` are whatever the uploader
   had — frequently DivX or Xvid inside an `.mp4` — and no browser will decode them. The
   Archive's own derivatives (`h.264 IA`, `512Kb MPEG4`) are always H.264. Originals are kept
@@ -80,3 +88,11 @@ must match a whole tag, anything else matches as a substring. A genre needs 12 f
 `DATA_DIR` and checks the classification and dedupe rules — episode brackets surviving,
 re-uploads still collapsing, the `SciFi_Horror` split, non-video items dropped. No network,
 about a second.
+
+`node tools/progtest.mjs` does the same for the programme grouping — that several encodes of
+one picture stay one programme, that several episodes do not, that the fallback chain holds
+only the episode being played, and that a suffix the Archive did not generate is left alone.
+The same grouping is implemented a second time in the browser (`programmesOf` in
+`src/js/10-core.js`), because the drawer builds its list from the live metadata; the two must
+agree or the count on the button contradicts the list under it. `tools/epstest.mjs` checks
+the browser half against the same cases.
