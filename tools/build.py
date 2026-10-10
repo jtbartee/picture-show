@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import json, re, collections, sys, os, html
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from taxonomy import GENRES, DECADES, LANG_MAP
+from taxonomy import GENRES, DECADES, LANG_MAP, COLLECTION_KEYS
 D=os.environ.get('DATA_DIR', os.path.join(os.path.dirname(os.path.abspath(__file__)),'..','data'))+os.sep
 
 films=json.load(open(D+'all_films.json'))
@@ -86,6 +86,39 @@ def tags_of(f):
             if p: out.append(p)
     return out
 
+# The Archive's curated shelves are a much better signal than the subject-tag
+# swamp, so membership files an item directly.
+#
+# SciFi_Horror is the awkward one: one shelf, two genres. In practice its own
+# tags settle most of it -- of 952 items, 739 are tagged horror, 95 both, 1
+# sci-fi -- and those are left exactly as their metadata says. That leaves ~117
+# carrying neither tag, which is the only place this rule bites: it reads the
+# title and description for science-fiction markers and otherwise files to
+# horror, which the shelf's 739-to-1 tag ratio makes the right prior. Items keep
+# whatever genres their own tags earned them either way, so the worst case is an
+# extra heading on a film, not a lost one.
+SCIFI_HINT=re.compile(r'\b(sci-?fi|science[ -]fiction|space(craft|ship)?|rocket|planet|'
+                      r'martian|alien|robot|android|cyborg|atomic|mutant|time[ -]travel|'
+                      r'ufo|flying saucer|galax\w*|astronaut|satellite|invaders?|'
+                      r'outer space|another world|future)\b', re.I)
+
+# The shelves whose items are episodic rather than feature-length.
+TV_SHELVES={'saturdaymorningcartoons','classic_tv_1980s'}
+
+def collections_of(f):
+    c=f.get('collection') or []
+    if isinstance(c,str): c=[c]
+    return set(c)
+
+def collection_keys(f, keys, blob):
+    cols=collections_of(f)
+    out=set()
+    for c in cols:
+        out|=COLLECTION_KEYS.get(c,set())
+    if 'SciFi_Horror' in cols and not (keys & {'horror','scifi'}):
+        out.add('scifi' if SCIFI_HINT.search(blob) else 'horror')
+    return out
+
 def classify(f, dtext):
     keys=set()
     for t in tags_of(f):
@@ -135,6 +168,14 @@ def get_secs(f, r, v=None):
     return None
 
 # ---------- stage 1: filter to playable, build records
+# NB: `mediatype` is NOT used to decide what is a film. The television shelves do
+# carry stray images, audio and text items, but the Archive's mediatype is
+# unreliable in both directions -- "Inspector Gadget (1999) Extended Cut" is
+# filed as `image` and "Adventures of Captain Marvel" as `audio`, both with
+# perfectly good H.264 derivatives, and filtering on the label dropped them.
+# Having a browser-playable video is the real test, and best_videos() already
+# applies it: a promo still has no video files and a theme tune is an .mp3, so
+# both fall out as `no_playable_video` without costing us a real picture.
 SPAM_TITLE=re.compile(r'^(assista clicando aqui|watch here|click here)',re.I)
 recs=[]
 stats=collections.Counter()
@@ -150,13 +191,18 @@ for f in films:
     title=clean_text(f.get('title')) or fid
     if SPAM_TITLE.match(title): stats['spam']+=1; continue
     dtext=clean_text(desc.get(fid))
+    # tags, then language, then (only if nothing matched) prose -- and finally
+    # the shelf the item sits on, which applies regardless of what matched.
+    keys=classify(f,dtext)
+    keys|=collection_keys(f, keys, title+' '+' '.join(tags_of(f))+' '+dtext[:1500])
     recs.append({
         'id':fid,'title':title,'year':get_year(f),
         'v':vids[0]['n'],'alts':[c['n'] for c in vids[1:3]],
         'dl':int(f.get('downloads') or 0),'secs':get_secs(f,r,vids[0]),
         'h':vids[0].get('h') or 0,'sz':vids[0].get('s') or 0,
         'creator':clean_text(f.get('creator'))[:80],
-        'keys':classify(f,dtext),
+        'keys':keys,
+        'tv':bool(collections_of(f) & TV_SHELVES),
     })
 print('stage1:',dict(stats),'-> kept',len(recs))
 
@@ -178,14 +224,41 @@ NOISE=re.compile(r'\b(full\s*movie|full\s*film|complete\s*movie|free\s*movie|hd\
                  r'720p|1080p|480p|576p|4k|widescreen|remastered|restored|'
                  r'public\s*domain|classic\s*movie|feature\s*film|english\s*subtitles|'
                  r'subtitled|sub|w/?\s*subs)\b', re.I)
+# Episodic television breaks the "drop bracketed asides" rule outright. On a
+# feature the bracket is noise -- "White Zombie (1932)", "Nosferatu [HD]" -- but
+# on a television item it is the whole identity: "Around the World in 80 Days
+# (Episode 10)", "В поисках капитана Гранта (серия 2)", "American Bandstand
+# (April 21, 1984)". Stripping those collapsed 179 distinct episodes into 8
+# survivors. So a bracket is only dropped when it holds nothing that marks one
+# instalment apart from another.
+EPISODE_MARK=re.compile(
+  r'\b(?:episode|episodio|épisode|ep|pt|part|parte|season|series|chapter|'
+  r'cap[ií]tulo|cap|vol(?:ume)?|disc|disk|folge|serie|серия|сезон|no|number)\b\s*\.?\s*\d'
+  r'|#\s*\d'
+  r'|\b\d{1,3}\s*(?:of|/)\s*\d{1,3}\b'
+  r'|\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|'
+  r'aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b'
+  r'|\b\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}\b', re.I)
+
+def strip_asides(t):
+    return re.sub(r'[\(\[\{](.*?)[\)\]\}]',
+                  lambda m: ' ' if not EPISODE_MARK.search(m.group(1)) else ' '+m.group(1)+' ', t)
+
 def dedupe_key(x):
     t=x['title']
-    t=re.sub(r'[\(\[\{].*?[\)\]\}]',' ',t)        # drop bracketed asides
+    t=strip_asides(t)                              # drop bracketed asides
     t=re.sub(r'\b(18|19|20)\d{2}\b',' ',t)          # drop stray years
     t=NOISE.sub(' ',t)
     t=re.sub(r'[^a-z0-9]','',t.lower())
     if not t: t=re.sub(r'[^a-z0-9]','',x['title'].lower())
-    return t+('|'+str(x['year']) if x['year'] else '')
+    k=t+('|'+str(x['year']) if x['year'] else '')
+    # A television shelf legitimately repeats a title: 24 separate items are all
+    # called "Cartoon Network Groovies", and six are "Mega Man NT Warrior
+    # Complete Series". Those are different shorts, not redundant uploads of one
+    # picture, so length keeps them apart -- while a true re-upload of the same
+    # episode still has the same length and still collapses.
+    if x['tv'] and x['secs']: k+='|t%d'%(x['secs']//10)
+    return k
 
 bytitle=collections.defaultdict(list)
 for x in recs:
@@ -211,7 +284,9 @@ counts=collections.Counter()
 for x in recs:
     for k in x['keys']: counts[k]+=1
 
-MIN=12   # a genre needs enough titles to be worth a marquee slot
+# A genre needs enough titles to be worth a marquee slot. Overridable so the
+# fixture test can exercise small catalogues (see tools/dedupetest.mjs).
+MIN=int(os.environ.get('MIN_FILMS','12'))
 cats=[]
 for key,label,color,section,_,_ in GENRES:
     if counts[key]>=MIN: cats.append((key,label,color,section))
@@ -236,8 +311,11 @@ for x in recs:
     films_out.append([x['id'],x['title'],x['v'],x['year'] or 0,x['dl'],x['secs'] or 0,g,x['creator'],x['alts']])
 
 out={
- 'generated':'2026-10-08',
- 'source':'https://archive.org/details/feature_films',
+ 'generated':__import__('datetime').date.today().isoformat(),
+ 'sources':[['feature_films','Feature Films'],
+            ['SciFi_Horror','Sci-Fi / Horror'],
+            ['saturdaymorningcartoons','Saturday Morning Cartoons'],
+            ['classic_tv_1980s','Classic TV: 1980s']],
  'cats':[[c[0],c[1],c[2],c[3]] for c in cats],
  'fields':['id','title','video','year','downloads','seconds','cats','creator','alts'],
  'films':films_out,
@@ -248,6 +326,6 @@ print()
 print('== category sizes')
 bysec=collections.defaultdict(list)
 for key,label,color,section in cats: bysec[section].append((counts[key],label))
-for sec in ['genre','era','world','decade']:
+for sec in ['genre','tv','era','world','decade']:
     print('--',sec)
     for v,l in sorted(bysec[sec],reverse=True): print('   %6d  %s'%(v,l))

@@ -118,10 +118,28 @@ GENRES = [
    "=soldatenlieder","=marschmusik","=reichsparteitag","=militärparade","=hj","=hitlerjugend",
    "=agitprop","=war effort","=home front","=why we fight","=office of war information",
    "=ministry of information","=newsreel propaganda","=wartime propaganda"],[]),
- ("television","Television","#7f6a9e","genre",
+ # ---- television. These three share a board section of their own rather than
+ # sitting among the film genres: an episode of a 1980s cop show is a different
+ # kind of thing from a feature, and mixing them would make both harder to browse.
+ # "Television" stays tag-derived -- telefilms and anthology plays that live in
+ # the feature vault -- so it does not simply restate the two shelves below it.
+ ("television","Television","#7f6a9e","tv",
   ["=television","=tv","=tv series","=tv show","=telefilm","=teleplay","=classic tv","=tv episode",
    "=anthology series","=sitcom"],[]),
+ ("satmorning","Saturday Morning Cartoons","#b5838d","tv",[],[]),
+ ("tv80s","80s Television","#6d9dc5","tv",[],[]),
 ]
+
+# ---- Archive collection -> genre keys.
+# A curated collection is a far better signal than the subject-tag swamp, so
+# membership files an item directly. Applied *after* the tag and prose passes in
+# build.py, so an item still collects any genres its own metadata earns it.
+# SciFi_Horror is deliberately absent: it is a two-genre shelf, so build.py
+# splits it between Horror and Science Fiction instead of tagging it flat.
+COLLECTION_KEYS = {
+ "saturdaymorningcartoons": {"satmorning"},
+ "classic_tv_1980s":        {"tv80s"},
+}
 
 # Language code -> world genre key
 LANG_MAP = {

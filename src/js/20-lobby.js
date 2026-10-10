@@ -10,7 +10,7 @@ var vid=$('#vid'), player=$('#player'), spin=$('#spin'), oops=$('#oops');
   var b=$('#bulbs');
   for(var i=0;i<13;i++){ var n=el('i'); n.style.animationDelay=(i*0.15)+'s'; b.appendChild(n); }
   var hrs=FILMS.reduce(function(a,f){ return a+(f.secs||0); },0)/3600;
-  $('#count').textContent=nfmt(FILMS.length)+' films  ·  '+nfmt(Math.round(hrs))+' hours  ·  always free';
+  $('#count').textContent=nfmt(FILMS.length)+' titles  ·  '+nfmt(Math.round(hrs))+' hours  ·  always free';
   $('#genStamp').textContent='Programme compiled '+DATA.generated+' from the Archive’s own metadata.';
 })();
 
@@ -28,7 +28,7 @@ function buildGenreBoard(){
       b.appendChild(el('span','n',c.label));
       b.appendChild(el('span','q',nfmt(c.films.length)));
       var d=el('span','dice','🎲'); d.setAttribute('aria-hidden','true'); b.appendChild(d);
-      b.setAttribute('aria-label',c.label+', '+c.films.length+' films');
+      b.setAttribute('aria-label',c.label+', '+c.films.length+' titles');
       b.addEventListener('click',function(ev){
         if(ev.shiftKey){ playFilm(pick(c.films),c); return; }
         go('#/g/'+c.key);
@@ -68,7 +68,7 @@ function showShowcase(cat,query){
   scTitle.appendChild(document.createTextNode(cat?cat.label:('“'+query+'”')));
   scTitle.style.setProperty('--c',c);
 
-  var bits=[nfmt(view.films.length)+(view.films.length===1?' film':' films')];
+  var bits=[nfmt(view.films.length)+(view.films.length===1?' title':' titles')];
   if(cat){
     var yrs=view.films.map(function(f){return f.year;}).filter(Boolean);
     if(yrs.length) bits.push(Math.min.apply(null,yrs)+'–'+Math.max.apply(null,yrs));

@@ -16,6 +16,11 @@ ok('"recently watched" still shows it', !(await c.eval(`document.getElementById(
 // and a brand-new viewer with nothing stored must still be fine
 await c.eval(`localStorage.clear()`);
 await c.send('Page.navigate',{url:U+'?cb='+Date.now()}); await sleep(2500);
-ok('a first-time viewer loads cleanly', (await c.eval(`document.querySelectorAll('#genreBoard .chip').length`))===64);
+// Every category must get a chip. Comparing against the catalogue rather than a
+// fixed number also catches a category whose `section` has no `data-sec` to
+// render into, which would silently hide it from the board.
+const nChips=await c.eval(`document.querySelectorAll('#genreBoard .chip').length`);
+const nCats =await c.eval(`CINEMA_DATA.cats.length`);
+ok('a first-time viewer loads cleanly', nChips===nCats, nChips+' chips for '+nCats+' categories');
 ok('and sees no stale watch list', await c.eval(`document.getElementById('btnSeen').hidden`));
 c.close();

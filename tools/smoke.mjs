@@ -29,7 +29,9 @@ const nFilms=await c.eval('CINEMA_DATA.films.length');
 const nChips=await c.eval('document.querySelectorAll("#genreBoard .chip").length');
 ok('genre chips rendered', nChips>20, nChips+' chips, '+nFilms+' films');
 ok('curtains closed at rest', !(await c.eval('document.body.classList.contains("open")')));
-ok('counts line filled', /films/.test(await c.eval('document.getElementById("count").textContent')));
+// the catalogue holds television as well as features, so the marquee counts "titles"
+const countTxt=await c.eval('document.getElementById("count").textContent');
+ok('counts line filled', /[\d,]+ titles .* [\d,]+ hours/.test(countTxt), countTxt);
 await c.shot(`${SHOTS}/01-lobby.png`);
 
 // ---- enter a genre

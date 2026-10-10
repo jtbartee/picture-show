@@ -2,14 +2,30 @@
 
 Four steps. Everything lands in `../data/` unless you set `DATA_DIR`.
 
+The programme is built from four Archive collections, listed in `COLLECTIONS` at
+the top of `scrape.mjs`. Add a shelf there and, if it deserves its own heading,
+give it one in `taxonomy.py`:
+
+| collection | items | what it is |
+|---|---|---|
+| `feature_films` | 28,575 | the main vault of public-domain features |
+| `SciFi_Horror` | 952 | a curated sci-fi/horror shelf; every item is also in `feature_films` |
+| `saturdaymorningcartoons` | 1,717 | animated television, mostly episodic |
+| `classic_tv_1980s` | 2,253 | 1980s television |
+
+Collection membership is itself a classification signal, and a much better one
+than the subject tags — `taxonomy.py`'s `COLLECTION_KEYS` maps a shelf straight
+onto genre keys. `SciFi_Horror` is the exception: it is one shelf covering two
+genres, so `build.py` splits it (see the comment there).
+
 | step | command | time | writes |
 |---|---|---|---|
-| 1 | `node tools/scrape.mjs` | ~1 min | `all_films.json`, `all_desc.json` |
+| 1 | `node tools/scrape.mjs` | ~2 min | `all_films.json`, `all_desc.json` |
 | 2 | `node tools/resolve.mjs` | **~2 h** | `cands.jsonl` |
 | 3 | `python3 tools/build.py` | ~10 s | `cinema-data.json` |
 | 4 | `node build.mjs` | ~1 s | `index.html` |
 
-**Step 2 is the slow one.** It asks `archive.org/metadata/<id>` for every one of the ~28,500
+**Step 2 is the slow one.** It asks `archive.org/metadata/<id>` for every one of the ~32,500
 items to find out which encodes exist. It runs 20 requests at a time and the Archive paces
 it to roughly 4–5 items a second. It appends to `cands.jsonl` and skips anything already in
 there, so it is safe to kill and restart.
@@ -36,6 +52,15 @@ chosen file and the choice turned out to be wrong, which meant re-fetching every
   stripped; the most-downloaded copy wins and inherits the genres of the ones it replaces.
   Words that mark a genuinely different print — `colorized`, `dubbed` — are deliberately
   *not* stripped.
+- **Keeps episodes apart.** Stripping the bracket is right for a feature and wrong for
+  television, where the bracket *is* the identity: `(Episode 10)`, `(серия 2)`,
+  `(April 21, 1984)`. A bracket is only dropped if it holds nothing that distinguishes one
+  instalment from another. Items on the television shelves also carry their length in the
+  dedupe key, because a shelf legitimately repeats a title — 24 separate items are all
+  called *Cartoon Network Groovies* — while a true re-upload of one episode still matches
+  on length and still collapses.
+- **Drops non-video items.** The television shelves carry stray images, audio and text
+  alongside the shows.
 - **Collapses uploader dumps.** The Jesus Film alone is on the Archive as ~1,300 separate
   items, one per dubbed language. Left alone it would swamp the Religious genre and win the
   random button one spin in twenty. One copy is kept.
@@ -45,4 +70,13 @@ chosen file and the choice turned out to be wrong, which meant re-fetching every
 `taxonomy.py` is the only file worth editing to change what the lobby looks like. Each genre
 is `(key, label, colour, section, tag_patterns, title_patterns)`; a pattern beginning `=`
 must match a whole tag, anything else matches as a substring. A genre needs 12 films
-(`MIN` in `build.py`) to earn a slot on the board.
+(`MIN` in `build.py`, overridable with `MIN_FILMS`) to earn a slot on the board.
+`section` places the chip on the lobby board and must match a `data-sec` in
+`src/04-body.html` — `genre`, `tv`, `world`, `era`, `decade` or `misc`.
+
+## Testing the pipeline
+
+`node tools/dedupetest.mjs` runs `build.py` against a hand-written catalogue in a temp
+`DATA_DIR` and checks the classification and dedupe rules — episode brackets surviving,
+re-uploads still collapsing, the `SciFi_Horror` split, non-video items dropped. No network,
+about a second.
