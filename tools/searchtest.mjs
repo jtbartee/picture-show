@@ -38,12 +38,16 @@ async function type(text) {
     await sleep(60);
   }
 }
-// `text` is what the key inserts, and only printable keys have one -- sending a
-// char event for Backspace makes CDP reject the whole call.
+// `text` is what the key inserts, and only printable keys have one -- Backspace
+// with a text makes CDP reject the call, and Enter WITHOUT one never reaches the
+// form, so the key is dispatched as a real one would arrive: a single keyDown
+// that carries its text. Do not split it into rawKeyDown + a separate `char`.
+// That also submits, but it leaves Chrome holding the media pipeline: a <video>
+// given a src afterwards sits at readyState 0 for as long as you care to wait,
+// which looks exactly like a page that cannot play its films.
 async function press(key, code, vk, text) {
   const k={key,code,windowsVirtualKeyCode:vk,nativeVirtualKeyCode:vk};
-  await c.send('Input.dispatchKeyEvent',{type:'rawKeyDown',...k});
-  if (text) await c.send('Input.dispatchKeyEvent',{type:'char',key,text});
+  await c.send('Input.dispatchKeyEvent',{type:'keyDown',...k,...(text?{text}:{})});
   await c.send('Input.dispatchKeyEvent',{type:'keyUp',...k});
 }
 const enter     = () => press('Enter','Enter',13,'\r');
@@ -117,6 +121,24 @@ await c.eval(`document.getElementById('q').focus()`);
 await enter();
 await sleep(400);
 ok('empty submit does not search', (await hash())==='#/', await hash());
+
+// ---- a film opened from search results must still play. This is here because
+// the harness can break it on its own: see the note on press() above.
+await reset();
+await c.eval(`document.getElementById('q').focus()`);
+await type('zombie');
+await enter();
+await sleep(800);
+await c.eval(`document.querySelectorAll('#grid .card button')[0].click()`);
+await sleep(1500);
+let rs = 0;
+for (let w = 0; w < 25; w++) {
+  await sleep(600);
+  rs = await c.eval('document.getElementById("vid").readyState');
+  if (rs >= 1 || await c.eval('!document.getElementById("oops").hidden')) break;
+}
+ok('a result opened after Enter still plays', rs >= 1, 'readyState ' + rs);
+await c.eval(`document.getElementById('pExit').click()`); await sleep(2200);
 
 // ---- a search link still works cold, which is what route() is for
 await c.send('Page.navigate',{url:URL_BASE+'#/s/dracula'});
