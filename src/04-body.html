@@ -32,13 +32,18 @@
     </header>
 
     <div id="tools">
-      <div class="field">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-          <circle cx="11" cy="11" r="7"/><path d="M20 20l-4.3-4.3"/>
-        </svg>
-        <input id="q" type="search" placeholder="Search every title…" aria-label="Search every film title"
+      <!-- A real form, so the only things that start a search are Enter and the
+           magnifier. Nothing is searched while the viewer is still typing. -->
+      <form class="field" id="qForm" role="search" action="#" novalidate>
+        <button type="submit" id="qGo" title="Search (Enter)" aria-label="Search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"/><path d="M20 20l-4.3-4.3"/>
+          </svg>
+        </button>
+        <input id="q" type="search" placeholder="Search every title — press Enter"
+               aria-label="Search every film title" enterkeyhint="search"
                autocomplete="off" spellcheck="false">
-      </div>
+      </form>
       <button class="btn primary" id="surprise">🎲 <span>Surprise me</span></button>
       <button class="btn" id="btnSeen" hidden>Recently watched</button>
     </div>
@@ -83,9 +88,13 @@
          Picture Show is only a lobby — it stores no video and hosts nothing. All titles come from the
          <a href="https://archive.org/details/feature_films" target="_blank" rel="noopener noreferrer">Feature Films</a>,
          <a href="https://archive.org/details/SciFi_Horror" target="_blank" rel="noopener noreferrer">Sci-Fi / Horror</a>,
-         <a href="https://archive.org/details/saturdaymorningcartoons" target="_blank" rel="noopener noreferrer">Saturday Morning Cartoons</a>
+         <a href="https://archive.org/details/saturdaymorningcartoons" target="_blank" rel="noopener noreferrer">Saturday Morning Cartoons</a>,
+         <a href="https://archive.org/details/classic_tv" target="_blank" rel="noopener noreferrer">Classic TV</a>
          and <a href="https://archive.org/details/classic_tv_1980s" target="_blank" rel="noopener noreferrer">Classic TV: 1980s</a>
-         collections at <a href="https://archive.org" target="_blank" rel="noopener noreferrer">archive.org</a>,
+         collections, the complete cartoon runs uploaded by
+         <a href="https://archive.org/details/@oasisarcade" target="_blank" rel="noopener noreferrer">Oasis Arcade</a>,
+         and a few hand-picked items — all of them at
+         <a href="https://archive.org" target="_blank" rel="noopener noreferrer">archive.org</a>,
          a non-profit library. Please consider
          <a href="https://archive.org/donate" target="_blank" rel="noopener noreferrer">donating to them</a> —
          they pay for the bandwidth this page uses.</p>

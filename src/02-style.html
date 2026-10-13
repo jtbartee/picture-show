@@ -159,6 +159,12 @@ body.open #board{opacity:0;transform:scale(.97);pointer-events:none}
 }
 .field input::placeholder{color:rgba(244,236,224,.45)}
 .field svg{position:absolute;left:.6rem;top:50%;transform:translateY(-50%);width:1.05rem;height:1.05rem;opacity:.6}
+/* On the lobby search the magnifier is the submit button, so it needs a hit
+   area rather than being decoration. It covers the input's left padding; the
+   icon inside keeps the .field svg placement above, which is measured from the
+   button rather than the field but comes out in the same place. */
+#qGo{position:absolute;left:0;top:0;width:2.2rem;height:100%;padding:0;border-radius:3px 0 0 3px}
+#qGo:hover svg,#qGo:focus-visible svg{opacity:1;color:var(--gold-l)}
 .btn{
   display:inline-flex;align-items:center;gap:.45rem;
   padding:.62rem 1.1rem;border:1px solid var(--gold-d);border-radius:3px;

@@ -1,5 +1,5 @@
 import { connect, sleep } from './cdp.mjs';
-const SH='/private/tmp/claude-501/-Users-johnbartee-Projects/1ece8409-48fb-4cf8-b086-5f9a3823ae69/scratchpad/shots';
+const SH=process.env.SHOTS||'/tmp/picture-show-shots';
 const c=await connect(9333);
 await c.send('Runtime.enable'); await c.send('Page.enable');
 await c.send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:2,mobile:true});

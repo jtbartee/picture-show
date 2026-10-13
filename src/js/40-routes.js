@@ -53,21 +53,26 @@ sortSel.addEventListener('change',function(){
   if(view.cat||view.query) showShowcase(view.cat,view.query);
 });
 
-var qT=null;
-qInput.addEventListener('input',function(){
-  clearTimeout(qT);
-  qT=setTimeout(function(){
-    var q=qInput.value.trim();
-    if(q.length>=2) setHash('#/s/'+encodeURIComponent(q));
-    else if(!q) setHash('#/');
-  },220);
-});
-qInput.addEventListener('keydown',function(ev){
-  if(ev.key==='Enter'){
-    ev.preventDefault();
-    if(view.films.length) playFilm(view.films[0],null);
-  }
-});
+/* Searching happens only when it is asked for: Enter, or the magnifier, both of
+   which arrive here as the form's submit. The box used to search on a 220ms
+   debounce from two characters up, so it swept the whole catalogue and rebuilt
+   the grid between keystrokes -- by the time you had typed a title you had
+   been shown the results for every prefix of it, and the one you wanted was
+   three renders behind your fingers. */
+function submitSearch(){
+  var q=qInput.value.trim();
+  if(q) setHash('#/s/'+encodeURIComponent(q));
+  else setHash('#/');
+}
+$('#qForm').addEventListener('submit',function(ev){ ev.preventDefault(); submitSearch(); });
+
+/* Emptying the box is the one thing that still acts on its own, because it is
+   how you stop searching -- including with the field's own ✕. Leaving the
+   results of a query the box no longer holds on screen would be worse than
+   going back to the lobby. Anything short of empty waits to be submitted. */
+function clearedToLobby(){ if(!qInput.value.trim() && view.query) setHash('#/'); }
+qInput.addEventListener('input',clearedToLobby);
+qInput.addEventListener('search',clearedToLobby);
 
 /* recently watched */
 function seenFilms(){
@@ -141,6 +146,7 @@ route();
    everything here is already reachable by clicking. */
 window.PICTURE_SHOW={FILMS:FILMS,CATS:CATS,byId:FILM_BY_ID,playFilm:playFilm,
   closeCurtains:closeCurtains,showShowcase:showShowcase,search:searchFilms,view:view,
+  submitSearch:submitSearch,
   renderAbout:renderAbout,plainText:plainText,
   programmesOf:programmesOf,progStem:progStem,playEpisode:playEpisode,
   openEps:openEps,closeEps:closeEps,

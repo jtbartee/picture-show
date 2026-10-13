@@ -7,7 +7,8 @@ import { execFileSync } from 'child_process';
 const D = fs.mkdtempSync(path.join(os.tmpdir(), 'ps-dedupe-'));
 const TOOLS = new URL('.', import.meta.url).pathname;
 
-// id, title, year, collections, subject, mediatype, length(s)
+// id, title, year, collections, subject, mediatype, length(s), programmes, downloads
+// (programmes defaults to 1 -- i.e. one file in the item -- and downloads to 100)
 const ITEMS = [
   // --- episode brackets must survive: these are 3 distinct instalments
   ['atw1','Around the World in 80 Days (Episode 1)',1972,['saturdaymorningcartoons'],[],'movies',1500],
@@ -40,19 +41,45 @@ const ITEMS = [
   //     these are genuine feature_films items whose mediatype is wrong.
   ['mis1','Inspector Gadget Extended Cut',1999,['feature_films'],['comedy'],'image',4200],
   ['mis2','Adventures of Captain Marvel',1941,['feature_films'],['serial'],'audio',4300],
+  // --- when two copies do collapse, the survivor must be the one that holds the
+  //     most programmes. ds1 is a popular upload of a single episode; ds2 is the
+  //     whole run and barely downloaded. Keeping ds1 would hide five pictures,
+  //     and the most-downloaded rule used to do exactly that.
+  ['ds1','Danger Mouse',1981,['feature_films'],[],'movies',1200,1,9000],
+  ['ds2','Danger Mouse',1981,['feature_films'],[],'movies',1200,6,20],
+  // --- the shelves added after the first build: the whole Classic TV shelf, an
+  //     uploader's account, and hand-picked items. The last two are synthetic
+  //     shelf ids invented by scrape.mjs, and must file like any other.
+  ['ct1','Dragnet (Episode 1)',1953,['classic_tv'],[],'movies',1500],
+  // --- the same picture on two shelves. The television key carries a runtime
+  //     and the feature vault's does not, so without the cross-shelf pass these
+  //     two get different keys and both survive.
+  ['wh1','The Woman Hunter',1972,['classic_tv'],[],'movies',4164],
+  ['wh2','The Woman Hunter (1972)',1972,['feature_films'],[],'movies',4164],
+  // --- ...while two instalments that merely share a title across shelves must
+  //     still both survive: same title and year, different runtimes.
+  ['oz1','The Adventures of Ozzie & Harriet',1955,['classic_tv'],[],'movies',1496],
+  ['oz2','The Adventures of Ozzie & Harriet',1955,['feature_films'],[],'movies',1749],
+  ['oa1','Thundarr the Barbarian (Complete)',1980,['@oasisarcade'],['cartoons'],'movies',1320,13],
+  ['hp1','Count Duckula HD (Complete - 65 Episodes)',1988,['handpicked'],['cartoons'],'movies',1380,5],
 ];
 // img1/aud1 get no playable derivative; everything else gets one.
 const NO_VIDEO = new Set(['img1','aud1']);
 
-const films = ITEMS.map(([identifier,title,year,collection,subject,mediatype]) => ({
-  identifier, title, year, collection, subject, mediatype, downloads: 100, creator:'', language:[],
+const films = ITEMS.map(([identifier,title,year,collection,subject,mediatype,,,downloads]) => ({
+  identifier, title, year, collection, subject, mediatype,
+  downloads: downloads ?? 100, creator:'', language:[],
 }));
-// every item needs a resolved playable derivative, or stage 1 drops it
-const cands = ITEMS.map(([id,,,,,,len]) => JSON.stringify({
+// every item needs a resolved playable derivative, or stage 1 drops it. An item
+// asking for several programmes gets several files with distinct stems, which is
+// what build.py counts -- see programmes() there and tools/progtest.mjs.
+const cands = ITEMS.map(([id,,,,,,len,progs]) => JSON.stringify({
   id,
   // a promo still has no video files at all; a theme tune is an .mp3, which the
   // resolver does not record as a candidate either
-  c: NO_VIDEO.has(id) ? [] : [{ n:id+'.mp4', f:'h.264 IA', s:1000, h:480, o:0, len:String(len) }],
+  c: NO_VIDEO.has(id) ? [] :
+     Array.from({length:progs??1}, (_,i) => ({
+       n: id+(i?'-ep'+(i+1):'')+'.mp4', f:'h.264 IA', s:1000, h:480, o:0, len:String(len) })),
 })).join('\n');
 
 fs.writeFileSync(D+'/all_films.json', JSON.stringify(films));
@@ -97,10 +124,25 @@ ok(catsOf('sh3').has('horror'),  'tags already say horror -> horror');
 ok(catsOf('sh3').has('fantasy'), 'its own tags are kept alongside');
 
 console.log('television shelves file into their own section');
-ok(catsOf('atw1').has('satmorning'), 'cartoon -> Saturday Morning Cartoons');
-ok(catsOf('gr1').has('tv80s'),       '80s TV -> 80s Television');
-ok(out.cats.some(c => c[0]==='satmorning' && c[3]==='tv'), 'satmorning is in the tv section');
-ok(out.cats.some(c => c[0]==='tv80s'      && c[3]==='tv'), 'tv80s is in the tv section');
+ok(catsOf('atw1').has('satmorning'),    'cartoon -> Saturday Morning Cartoons');
+ok(catsOf('gr1').has('tv80s'),          '80s TV -> 80s Television');
+ok(catsOf('ct1').has('classictv'),      'classic_tv -> Classic TV');
+ok(catsOf('oa1').has('completeseries'), 'an account upload -> Complete Series');
+ok(catsOf('hp1').has('completeseries'), 'a hand-picked item -> Complete Series');
+['satmorning','tv80s','classictv','completeseries'].forEach(k =>
+  ok(out.cats.some(c => c[0]===k && c[3]==='tv'), k+' is in the tv section'));
+
+// A false merge hides a picture; a false split only shows a duplicate. So when
+// two rows do collapse, the copy that contains the other one has to be the
+// survivor -- the popular single episode would take five instalments with it.
+console.log('the same picture on two different shelves collapses');
+ok(ids.has('wh1') !== ids.has('wh2'), 'exactly one Woman Hunter survives');
+['oz1','oz2'].forEach(i => has(i, i+' kept — same title, different runtime'));
+
+console.log('the copy with the most programmes wins a collapse');
+ok(ids.has('ds1') !== ids.has('ds2'), 'exactly one Danger Mouse survives');
+has('ds2','the 6-programme copy is the one kept');
+not('ds1','the popular 1-programme copy is dropped');
 
 console.log('items with no playable video are dropped');
 not('img1','promo still dropped');

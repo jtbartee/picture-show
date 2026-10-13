@@ -127,7 +127,14 @@ GENRES = [
   ["=television","=tv","=tv series","=tv show","=telefilm","=teleplay","=classic tv","=tv episode",
    "=anthology series","=sitcom"],[]),
  ("satmorning","Saturday Morning Cartoons","#b5838d","tv",[],[]),
+ ("classictv","Classic TV","#7d9b76","tv",[],[]),
  ("tv80s","80s Television","#6d9dc5","tv",[],[]),
+ # ---- Items that hold a whole series rather than one programme: an account's
+ # worth of complete cartoon runs, plus a couple of hand-picked uploads of the
+ # same shape. The episode drawer is what makes these browsable at all, so they
+ # are worth a heading that says what they are -- one chip here is 65 or 90
+ # instalments, not one picture.
+ ("completeseries","Complete Series","#c9865b","tv",[],[]),
 ]
 
 # ---- Archive collection -> genre keys.
@@ -138,7 +145,13 @@ GENRES = [
 # splits it between Horror and Science Fiction instead of tagging it flat.
 COLLECTION_KEYS = {
  "saturdaymorningcartoons": {"satmorning"},
+ "classic_tv":              {"classictv"},
  "classic_tv_1980s":        {"tv80s"},
+ # The two synthetic shelves scrape.mjs invents for an uploader's account and
+ # for hand-picked items (see UPLOADERS and PICKS there). They are not Archive
+ # collections, but they file their items the same way a real shelf does.
+ "@oasisarcade":            {"completeseries"},
+ "handpicked":              {"completeseries"},
 }
 
 # Language code -> world genre key

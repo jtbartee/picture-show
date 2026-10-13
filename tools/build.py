@@ -143,8 +143,13 @@ SCIFI_HINT=re.compile(r'\b(sci-?fi|science[ -]fiction|space(craft|ship)?|rocket|
                       r'ufo|flying saucer|galax\w*|astronaut|satellite|invaders?|'
                       r'outer space|another world|future)\b', re.I)
 
-# The shelves whose items are episodic rather than feature-length.
-TV_SHELVES={'saturdaymorningcartoons','classic_tv_1980s'}
+# The shelves whose items are episodic rather than feature-length. The two
+# synthetic ones scrape.mjs invents (an account's uploads, and hand-picked
+# items) are here for the same reason the television shelves are: every item on
+# them is a series, so a repeated title is a different instalment rather than a
+# redundant upload.
+TV_SHELVES={'saturdaymorningcartoons','classic_tv','classic_tv_1980s',
+            '@oasisarcade','handpicked'}
 
 def collections_of(f):
     c=f.get('collection') or []
@@ -290,14 +295,16 @@ def strip_asides(t):
     return re.sub(r'[\(\[\{](.*?)[\)\]\}]',
                   lambda m: ' ' if not EPISODE_MARK.search(m.group(1)) else ' '+m.group(1)+' ', t)
 
-def dedupe_key(x):
+def base_title(x):
     t=x['title']
     t=strip_asides(t)                              # drop bracketed asides
     t=re.sub(r'\b(18|19|20)\d{2}\b',' ',t)          # drop stray years
     t=NOISE.sub(' ',t)
     t=re.sub(r'[^a-z0-9]','',t.lower())
-    if not t: t=re.sub(r'[^a-z0-9]','',x['title'].lower())
-    k=t+('|'+str(x['year']) if x['year'] else '')
+    return t or re.sub(r'[^a-z0-9]','',x['title'].lower())
+
+def dedupe_key(x):
+    k=base_title(x)+('|'+str(x['year']) if x['year'] else '')
     # A television shelf legitimately repeats a title: 24 separate items are all
     # called "Cartoon Network Groovies", and six are "Mega Man NT Warrior
     # Complete Series". Those are different shorts, not redundant uploads of one
@@ -306,19 +313,45 @@ def dedupe_key(x):
     if x['tv'] and x['secs']: k+='|t%d'%(x['secs']//10)
     return k
 
+def collapse(groups):
+    """Keep one record per group, the survivor inheriting the others' genres."""
+    out=[]; lost=0
+    for group in groups:
+        if len(group)==1: out.append(group[0]); continue
+        # The copy that holds the most programmes wins before the most-downloaded
+        # one does. Two uploads of "Wacky Races" can be one episode and the whole
+        # 17-episode run, and keeping the popular single would hide the other 16 --
+        # the survivor should be the copy that contains the others, not the copy
+        # with the best numbers. `eps` is 0 on a single-programme item.
+        group.sort(key=lambda x:(-(x['eps'] or 1),-x['dl'],-x['sz']))
+        surv=group[0]
+        for o in group[1:]: surv['keys']|=o['keys']
+        out.append(surv); lost+=len(group)-1
+    return out,lost
+
 bytitle=collections.defaultdict(list)
 for x in recs:
     bytitle[dedupe_key(x)].append(x)
-deduped=[]; dropped=0
-for k,group in bytitle.items():
-    if len(group)==1: deduped.append(group[0]); continue
-    group.sort(key=lambda x:(-x['dl'],-x['sz']))
-    # merge genre keys from all copies into the survivor
-    surv=group[0]
-    for o in group[1:]: surv['keys']|=o['keys']
-    deduped.append(surv); dropped+=len(group)-1
-recs=deduped
+recs,dropped=collapse(bytitle.values())
 print('dedupe: dropped %d duplicate uploads -> %d films' % (dropped,len(recs)))
+
+# ---------- stage 3b: the same picture sitting on two different shelves
+# The runtime in the key above is only added for items on a television shelf,
+# which makes the key asymmetric: one upload of "The Woman Hunter" on classic_tv
+# and another in the feature vault get different keys, and both survive. This
+# pass closes that on the one signature that cannot be two different instalments
+# of anything -- same title, same year, same runtime AND the same number of
+# programmes. It is strictly narrower than the rule above, which already
+# collapses that pair whenever both copies happen to sit on the same shelf.
+bysig=collections.defaultdict(list)
+loners=[]
+for x in recs:
+    if x['year'] and x['secs']: bysig[(base_title(x),x['year'],x['secs'],x['eps'])].append(x)
+    else: loners.append(x)
+recs,crossed=collapse(bysig.values())
+recs+=loners
+print('cross-shelf: dropped %d copies of a picture already on the programme -> %d films'
+      % (crossed,len(recs)))
 
 # ---------- stage 4: assign decades, finalize genre list
 for x in recs:
@@ -361,7 +394,10 @@ out={
  'sources':[['feature_films','Feature Films'],
             ['SciFi_Horror','Sci-Fi / Horror'],
             ['saturdaymorningcartoons','Saturday Morning Cartoons'],
-            ['classic_tv_1980s','Classic TV: 1980s']],
+            ['classic_tv','Classic TV'],
+            ['classic_tv_1980s','Classic TV: 1980s'],
+            ['@oasisarcade','Oasis Arcade'],
+            ['handpicked','Hand-picked']],
  'cats':[[c[0],c[1],c[2],c[3]] for c in cats],
  'fields':['id','title','video','year','downloads','seconds','cats','creator','alts','episodes'],
  'films':films_out,

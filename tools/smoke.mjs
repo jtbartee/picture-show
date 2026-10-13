@@ -1,6 +1,6 @@
 import { connect, sleep } from './cdp.mjs';
 const URL_BASE='http://localhost:8733/index.html?cb='+Date.now();
-const SHOTS='/private/tmp/claude-501/-Users-johnbartee-Projects/1ece8409-48fb-4cf8-b086-5f9a3823ae69/scratchpad/shots';
+const SHOTS=process.env.SHOTS||'/tmp/picture-show-shots';
 import fs from 'fs';
 fs.mkdirSync(SHOTS,{recursive:true});
 
@@ -72,8 +72,12 @@ await sleep(2600);
 ok('curtains closed again', !(await c.eval('document.body.classList.contains("open")')));
 ok('back on a browse hash', /^#\/g\//.test(await c.eval('location.hash')), await c.eval('location.hash'));
 
-// ---- search
-await c.eval(`(()=>{const q=document.getElementById('q');q.value='zombie';q.dispatchEvent(new Event('input'))})()`);
+// ---- search. Typing must not search; submitting must. tools/searchtest.mjs
+// goes through this properly -- this is the end of the lobby flow.
+await c.eval(`(()=>{const q=document.getElementById('q');q.value='zombie';q.dispatchEvent(new Event('input',{bubbles:true}))})()`);
+await sleep(600);
+ok('typing does not search', !/^#\/s\//.test(await c.eval('location.hash')), await c.eval('location.hash'));
+await c.eval(`document.getElementById('qGo').click()`);
 await sleep(600);
 ok('search routes', /^#\/s\//.test(await c.eval('location.hash')), await c.eval('location.hash'));
 const sc=await c.eval('document.querySelectorAll("#grid .card").length');
