@@ -62,13 +62,33 @@ const ITEMS = [
   ['oz2','The Adventures of Ozzie & Harriet',1955,['feature_films'],[],'movies',1749],
   ['oa1','Thundarr the Barbarian (Complete)',1980,['@oasisarcade'],['cartoons'],'movies',1320,13],
   ['hp1','Count Duckula HD (Complete - 65 Episodes)',1988,['handpicked'],['cartoons'],'movies',1380,5],
+  // --- the 1990s wing and the Game Shows Archive
+  ['n1','Seinfeld (Episode 3)',1991,['classic_tv_1990s','classic_tv'],[],'movies',1320],
+  ['gs1','Match Game (May 4, 1977)',1977,['gameshows'],[],'movies',1500],
+  ['gs2','Jeopardy! (1965)',1965,['classic_tv'],['game show'],'movies',1510],
+  // --- the category audit (Oct 2026). Each is a misfiling found in the real
+  //     catalogue, reduced to the tag that caused it.
+  ['au1','Shindig! (1965)',1965,['classic_tv'],['shindig'],'movies',1520],
+  ['au2','General Hospital (1986)',1986,['classic_tv'],['general hospital 80s soap opera daytime drama serial'],'movies',1530],
+  ['au3','Dick Tracy Chapter 1',1937,['feature_films'],['cliffhanger serial'],'movies',1540],
+  ['au4','Die beiden Schwestern',1950,['feature_films'],['die beiden schwestern'],'movies',5400],
+  ['au5','Bonanza - The Stranger',1960,['classic_tv'],['color','westerns'],'movies',1550],
+  ['au6','Project Universe - Stars',1978,['classic_tv'],['space','educational'],'movies',1560],
+  ['au7','Holiday Inn *colorized',1942,['feature_films'],['christmas','colorized'],'movies',6000],
+  ['au8','Gefragt - Gejagt vom 17. Juli 2023',2023,['gameshows'],[],'movies',2700],
+  ['au9','Metropolis',1927,['feature_films'],[],'movies',9000],
+  ['au11','The Price is Right (1996): Cliffhangers',1996,['gameshows'],[],'movies',1800],
+  ['au10','Some Adult Animation',2023,['gameshows'],['koikatsu','r18'],'movies',600],
+  ['ROCKY-HORROR','ROCKY HORROR PICTURE SHOW 1975',null,['handpicked_films'],['halloween','punk rock films'],'movies',6000],
 ];
+// language codes, for the items that need one
+const LANG = { au8:['ger'], au9:['ger'] };
 // img1/aud1 get no playable derivative; everything else gets one.
 const NO_VIDEO = new Set(['img1','aud1']);
 
 const films = ITEMS.map(([identifier,title,year,collection,subject,mediatype,,,downloads]) => ({
   identifier, title, year, collection, subject, mediatype,
-  downloads: downloads ?? 100, creator:'', language:[],
+  downloads: downloads ?? 100, creator:'', language: LANG[identifier] || [],
 }));
 // every item needs a resolved playable derivative, or stage 1 drops it. An item
 // asking for several programmes gets several files with distinct stems, which is
@@ -131,6 +151,33 @@ ok(catsOf('oa1').has('completeseries'), 'an account upload -> Complete Series');
 ok(catsOf('hp1').has('completeseries'), 'a hand-picked item -> Complete Series');
 ['satmorning','tv80s','classictv','completeseries'].forEach(k =>
   ok(out.cats.some(c => c[0]===k && c[3]==='tv'), k+' is in the tv section'));
+
+console.log('the 1990s wing and the game shows');
+ok(catsOf('n1').has('tv90s'),      'classic_tv_1990s -> 90s Television');
+ok(catsOf('n1').has('classictv'),  '...and still Classic TV');
+ok(catsOf('gs1').has('gameshows'), 'gameshows shelf -> Game Shows');
+ok(catsOf('gs2').has('gameshows'), 'a "game show" tag on another shelf -> Game Shows');
+['tv90s','gameshows'].forEach(k =>
+  ok(out.cats.some(c => c[0]===k && c[3]==='tv'), k+' is in the tv section'));
+
+console.log('the category audit');
+ok(!catsOf('au1').has('hindi'),        '"shindig" is not Indian Cinema');
+ok(!catsOf('au2').has('serial'),       'a daytime soap serial is not a chapter serial');
+ok(catsOf('au3').has('serial'),        'a cliffhanger serial still is');
+ok(!catsOf('au4').has('western'),      '"schwestern" is not a Western');
+ok(!catsOf('au5').has('colorized'),    'shot in colour is not Colorized');
+ok(catsOf('au5').has('western'),       '...and "westerns" still finds Western');
+ok(!catsOf('au6').has('scifi'),        'an astronomy programme tagged "space" is not Science Fiction');
+ok(!catsOf('au7').has('family'),       'a Christmas tag is not Family & Children');
+ok(catsOf('au7').has('colorized'),     '"colorized" is still Colorized');
+ok(!catsOf('au8').has('german'),       'a German quiz show is not German Cinema');
+ok(catsOf('au9').has('german'),        'a German-language film still is');
+ok(!catsOf('au11').has('serial'),      'a game show is not prose-filed as a Serial');
+not('au10',                            'an R18-tagged item is dropped');
+const rh = catsOf('ROCKY-HORROR');
+ok(rh.has('musical') && rh.has('horror') && rh.has('comedy'), 'a hand-filed item gets its ITEM_KEYS headings');
+ok(!rh.has('completeseries'),          '...and handpicked_films is not Complete Series');
+ok(rh.has('d1970'),                    '...and its ITEM_KEYS year');
 
 // A false merge hides a picture; a false split only shows a duplicate. So when
 // two rows do collapse, the copy that contains the other one has to be the

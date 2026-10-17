@@ -31,9 +31,14 @@ const ok = (c, m, extra='') => {
    imported from scrape.mjs: these are the expectations, and reading them out of
    the thing under test would make the assertion circular. */
 const SHELVES = ['feature_films','SciFi_Horror','saturdaymorningcartoons',
-                 'classic_tv','classic_tv_1980s','@oasisarcade','handpicked'];
+                 'classic_tv','classic_tv_1980s','classic_tv_1990s','gameshows',
+                 '@oasisarcade','handpicked','handpicked_films'];
 const PICKS = ['13-dm-the-duel-episode-1-5_202608',
-               'count-duckula-1x-07-dr-von-goosewings-invisible-ray-upscaled_202608'];
+               'count-duckula-1x-07-dr-von-goosewings-invisible-ray-upscaled_202608',
+               'ReadingRainbowTVSeries','db-bebop-of-the-cowboys-1080p',
+               'hnbt_aeonflux','hnbt_invaderzim',
+               '10kraftwerkpopifokusswedishtvspecial01042002',
+               'the-beatles-yellow-submarine','ROCKY-HORROR'];
 
 // Crude on purpose, and shared by the checks below: lowercase, drop years, drop
 // everything that is not a letter or a digit. It is deliberately NOT build.py's

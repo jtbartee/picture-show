@@ -17,6 +17,8 @@ export const COLLECTIONS = [
   'saturdaymorningcartoons',  // animated TV, mostly episodic
   'classic_tv',               // the whole Classic TV shelf, 1940s onward
   'classic_tv_1980s',         // its 1980s wing, which keeps a heading of its own
+  'classic_tv_1990s',         // and its 1990s wing, likewise
+  'gameshows',                // the Game Shows Archive, ~14,000 episodes
 ];
 
 // Two kinds of shelf that are not Archive collections. Neither has a
@@ -36,6 +38,17 @@ export const PICKS = [
   { shelf: 'handpicked', ids: [
     '13-dm-the-duel-episode-1-5_202608',                                   // Danger Mouse, 90 episodes
     'count-duckula-1x-07-dr-von-goosewings-invisible-ray-upscaled_202608', // Count Duckula, 65
+    'ReadingRainbowTVSeries',          // Reading Rainbow, 155 episodes
+    'db-bebop-of-the-cowboys-1080p',   // Cowboy Bebop, 26
+    'hnbt_aeonflux',                   // Aeon Flux, the MTV run
+    'hnbt_invaderzim',                 // Invader Zim, the complete invasion
+  ] },
+  // Features and one-offs, which must not be filed as television. Their
+  // headings come from ITEM_KEYS in taxonomy.py rather than from the shelf.
+  { shelf: 'handpicked_films', ids: [
+    '10kraftwerkpopifokusswedishtvspecial01042002',  // Kraftwerk, videos 1975-2000
+    'the-beatles-yellow-submarine',
+    'ROCKY-HORROR',
   ] },
 ];
 

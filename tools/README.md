@@ -12,14 +12,17 @@ one there and, if it deserves its own heading, give it one in `taxonomy.py`:
 | `saturdaymorningcartoons` | 1,717 | animated television, mostly episodic |
 | `classic_tv` | 11,454 | the whole Classic TV shelf, 1940s onward |
 | `classic_tv_1980s` | 2,252 | its 1980s wing, which keeps a heading of its own |
+| `classic_tv_1990s` | 2,758 | its 1990s wing, likewise; every item is also in `classic_tv` |
+| `gameshows` | 14,345 | the Game Shows Archive |
 | `@oasisarcade` | 14 | an account's uploads: complete runs of 80s/90s cartoons |
-| `handpicked` | 2 | individual items no shelf above carries |
+| `handpicked` | 6 | complete series no shelf above carries |
+| `handpicked_films` | 3 | features and one-offs no shelf above carries, filed by hand |
 
 The shelves overlap heavily — every `SciFi_Horror` item is also in
 `feature_films`, and `classic_tv_1980s` is a wing of `classic_tv` — so
 `scrape.mjs` merges on identifier and an item carries every shelf it belongs to.
 
-The last two are not Archive collections and so have no `collection` field to
+The last three are not Archive collections and so have no `collection` field to
 filter on. They get a **synthetic shelf id**, which `COLLECTION_KEYS` files
 exactly like a real one:
 
@@ -30,6 +33,9 @@ exactly like a real one:
   fails loudly.
 - `PICKS` names individual identifiers. They go through `advancedsearch.php`
   rather than the scrape API, which mangles a hyphenated `identifier:` query.
+  `handpicked` is television and files under Complete Series; `handpicked_films`
+  is not television and has no shelf-wide heading — each of its items is filed by
+  hand in `taxonomy.py`'s `ITEM_KEYS`, which replaces whatever the tags would say.
 
 Shelf membership is itself a classification signal, and a much better one than
 the subject tags — `taxonomy.py`'s `COLLECTION_KEYS` maps a shelf straight onto
@@ -104,6 +110,30 @@ must match a whole tag, anything else matches as a substring. A genre needs 12 f
 (`MIN` in `build.py`, overridable with `MIN_FILMS`) to earn a slot on the board.
 `section` places the chip on the lobby board and must match a `data-sec` in
 `src/04-body.html` — `genre`, `tv`, `world`, `era`, `decade` or `misc`.
+
+### The category audit (Oct 2026)
+
+Every heading was checked against what actually lands in it, and these were wrong:
+
+- **Tag patterns matched anywhere in a tag.** `hindi` found *Shindig!*, `western` found
+  *Die beiden Schwestern*. Non-`=` patterns now match only where a word starts.
+- **Serials & Chapters held 160 soap-opera episodes** (`…daytime drama serial`) and serial
+  killers. `EXCLUDE` in `taxonomy.py` lists phrases that block a key for a tag; it also
+  keeps *western front* and *western philosophy* out of Westerns.
+- **Colorized held films shot in colour** — `color`, `technicolor` and `tinted` are gone;
+  only colourised and hand-coloured prints remain.
+- **Science Fiction held astronomy programmes** (bare `space`), **Animation held puppet
+  shows** (`puppet`), **Family held sitcom Christmas specials** (`christmas`, `holiday`).
+- **Musical held concerts and music television** via `music`; the heading is now
+  *Music & Musicals*, which is what it contains.
+- **National cinemas held television.** A language code files a film under its national
+  cinema, but on a television shelf it filed 360 German quiz-show episodes under German
+  Cinema. Language no longer applies to television-shelf items; their tags still can.
+- **R18-tagged items are dropped** (`DROP_TAGS`) — one hentai-game animation arrived on
+  the game-show shelf. Kept narrow on purpose: the vault's 60s/70s exploitation pictures
+  carry `18+` too, and stay.
+
+Each is pinned by a case in `dedupetest.mjs`.
 
 ## Testing the pipeline
 

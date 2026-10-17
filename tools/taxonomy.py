@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 # Curated taxonomy. Each genre: (key, label, color, section, tag_patterns, title_patterns)
-# tag patterns are matched as substrings against normalized subject tags.
-# A pattern starting with '=' must match the whole tag exactly.
+# tag patterns are matched against normalized subject tags. A pattern starting
+# with '=' must match the whole tag exactly; anything else matches where a word
+# starts inside the tag -- "western" finds "spaghetti western" and "westerns",
+# but not "schwestern", and "hindi" no longer finds "shindig".
 
 GENRES = [
  # ---- key, label, color, section, tags, titles
@@ -22,7 +24,7 @@ GENRES = [
  ("western","Western","#b7791f","genre",
   ["western","=westerns","=cowboy","=cowboys","=oater","=singing cowboy","=b-western","=spaghetti western","=sagebrush"],[]),
  ("scifi","Science Fiction","#2980b9","genre",
-  ["sci-fi","science fiction","scifi","=science-fiction","=space","=robot","=robots","=alien","=aliens","=atomic age","=ciencia ficción"],[]),
+  ["sci-fi","science fiction","scifi","=science-fiction","=robot","=robots","=alien","=aliens","=atomic age","=ciencia ficción"],[]),
  ("fantasy","Fantasy","#8e44ad","genre",
   ["=fantasy","=fantasia","=fantastique","=fairy tale","=fairy tales","=sword and sorcery","=mythology","=myth"],[]),
  ("romance","Romance","#d6336c","genre",
@@ -31,16 +33,16 @@ GENRES = [
   ["=action","=action adventure","=martial arts","=kung fu","=karate","=samurai","=swashbuckler","=stunt","=aksiyon"],[]),
  ("adventure","Adventure","#27ae60","genre",
   ["=adventure","=adventures","=jungle","=pirate","=pirates","=treasure","=expedition","=aventura","=abenteuer"],[]),
- ("musical","Musical","#f39c12","genre",
+ ("musical","Music & Musicals","#f39c12","genre",
   ["musical","=music","=opera","=operetta","=dance","=jazz","=band","=singing","=müzikal","=revue"],[]),
  ("war","War","#4d5a3a","genre",
   ["=war","=war film","=wwii","=world war ii","=world war i","=wwi","=military","=combat","=guerra","=krieg","=anti-war","=propaganda"],[]),
  ("documentary","Documentary","#1abc9c","genre",
   ["documentary","documental","dokumentar","=doc","=newsreel","=newsreels","=actuality","=travelogue","=educational","=instructional"],[]),
  ("animation","Animation","#9b59b6","genre",
-  ["animation","=animated","=cartoon","=cartoons","=stop motion","=stop-motion","=puppet","=anime","=çizgi film"],[]),
+  ["animation","=animated","=cartoon","=cartoons","=stop motion","=stop-motion","=anime","=çizgi film"],[]),
  ("family","Family & Children","#45b39d","genre",
-  ["=family","=children","=childrens","=children's","=kids","=juvenile","=family film","=christmas","=holiday"],[]),
+  ["=family","=children","=childrens","=children's","=kids","=juvenile","=family film"],[]),
  ("history","Historical","#8d6e63","genre",
   ["=history","=historical","=historical drama","=biography","=biopic","=period drama","=costume drama","=epic","=historia","=geschichte","=ancient rome","=medieval"],[]),
  ("serial","Serials & Chapters","#5d4037","genre",
@@ -50,7 +52,7 @@ GENRES = [
  ("experimental","Experimental","#e84393","genre",
   ["experimental","=avant-garde","=avantgarde","=abstract","=surreal","=surrealism","=dada","=underground","=structural film","=video art"],[]),
  ("exploitation","Exploitation","#a93226","genre",
-  ["exploitation","=grindhouse","=sexploitation","=roadshow","=nudie","=pre-code exploitation","=mondo","=biker","=women in prison"],[]),
+  ["exploitation","mexploitation","=grindhouse","=sexploitation","=roadshow","=nudie","=pre-code exploitation","=mondo","=biker","=women in prison"],[]),
  ("religious","Religious","#c39bd3","genre",
   ["jesus film","=religion","=religious","=bible","=biblical","=christian","=christ","=gospel","=faith","=missionary","=islam","=hindu"],[]),
  ("sports","Sports","#52be80","genre",
@@ -62,7 +64,7 @@ GENRES = [
  ("precode","Pre-Code Hollywood","#a1887f","era",
   ["pre-code","precode","pre code"],[]),
  ("colorized","Colorized","#ff7675","era",
-  ["=colorized","=colourized","=colorised","=color","=technicolor","=hand-colored","=tinted"],[]),
+  ["=colorized","=colourized","=colorised","=hand-colored","=hand-coloured"],[]),
  ("restored","Restored","#74b9ff","era",
   ["=restored","=restoration","=remastered","=4k restoration","=hd restoration"],[]),
 
@@ -129,6 +131,11 @@ GENRES = [
  ("satmorning","Saturday Morning Cartoons","#b5838d","tv",[],[]),
  ("classictv","Classic TV","#7d9b76","tv",[],[]),
  ("tv80s","80s Television","#6d9dc5","tv",[],[]),
+ ("tv90s","90s Television","#5f8fa8","tv",[],[]),
+ # Tag-derived as well as shelf-derived, so a quiz show filed on Classic TV is
+ # found here too.
+ ("gameshows","Game Shows","#c79a3a","tv",
+  ["=game show","=game shows","=gameshow","=gameshows","=quiz show","=quiz shows","=quiz","=panel show"],[]),
  # ---- Items that hold a whole series rather than one programme: an account's
  # worth of complete cartoon runs, plus a couple of hand-picked uploads of the
  # same shape. The episode drawer is what makes these browsable at all, so they
@@ -147,12 +154,49 @@ COLLECTION_KEYS = {
  "saturdaymorningcartoons": {"satmorning"},
  "classic_tv":              {"classictv"},
  "classic_tv_1980s":        {"tv80s"},
+ "classic_tv_1990s":        {"tv90s"},
+ "gameshows":               {"gameshows"},
  # The two synthetic shelves scrape.mjs invents for an uploader's account and
  # for hand-picked items (see UPLOADERS and PICKS there). They are not Archive
  # collections, but they file their items the same way a real shelf does.
  "@oasisarcade":            {"completeseries"},
  "handpicked":              {"completeseries"},
+ # Hand-picked features: no shelf-wide heading at all. ITEM_KEYS below files
+ # each one individually.
+ "handpicked_films":        set(),
 }
+
+# ---- Tag matches that must NOT file under a key. A tag containing one of these
+# phrases is skipped for that key's word-start patterns (exact '=' patterns are
+# unaffected). Each entry is a misfiling the category audit actually found.
+EXCLUDE = {
+ # "general hospital 90s soap opera daytime drama serial" is not a chapter play
+ "serial":       ["soap", "daytime", "killer", "murder", "tv serial", "television serial"],
+ # "western front", "western philosophy", country-and-western records
+ "western":      ["western front", "western philosophy", "western united states", "western europe",
+                  "western influence", "western music", "western songs", "western nude"],
+ "experimental": ["experimental rocket", "experimental sound", "experimental aircraft"],
+}
+
+# ---- Hand-picked items, filed by hand. These REPLACE whatever the tag
+# classifier would say: their tags are either missing (Yellow Submarine has
+# none) or misleading (Cowboy Bebop is tagged "cowboy", which made it a Western).
+# `year` fills in where the item's own metadata has none or the wrong one.
+ITEM_KEYS = {
+ "ReadingRainbowTVSeries":        {"keys": {"completeseries", "family"}},
+ "db-bebop-of-the-cowboys-1080p": {"keys": {"completeseries", "animation", "scifi", "action", "japanese"}},
+ "hnbt_aeonflux":                 {"keys": {"completeseries", "animation", "scifi", "experimental"}},
+ "hnbt_invaderzim":               {"keys": {"completeseries", "animation", "scifi", "comedy"}},
+ "10kraftwerkpopifokusswedishtvspecial01042002":
+                                  {"keys": {"musical"}},
+ "the-beatles-yellow-submarine":  {"keys": {"musical", "animation", "fantasy", "family", "british"}, "year": 1968},
+ "ROCKY-HORROR":                  {"keys": {"musical", "comedy", "horror", "scifi", "british"}, "year": 1975},
+}
+
+# Items dropped outright: adult-only animation that rides in on a broad shelf.
+# Kept narrow on purpose -- the feature vault's 60s/70s exploitation pictures
+# are tagged "18+" too and they stay.
+DROP_TAGS = {"r18", "r-18", "hentai"}
 
 # Language code -> world genre key
 LANG_MAP = {

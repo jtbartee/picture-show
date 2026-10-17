@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import json, re, collections, sys, os, html
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from taxonomy import GENRES, DECADES, LANG_MAP, COLLECTION_KEYS
+from taxonomy import GENRES, DECADES, LANG_MAP, COLLECTION_KEYS, EXCLUDE, ITEM_KEYS, DROP_TAGS
 D=os.environ.get('DATA_DIR', os.path.join(os.path.dirname(os.path.abspath(__file__)),'..','data'))+os.sep
 
 films=json.load(open(D+'all_films.json'))
@@ -63,8 +63,11 @@ def prog_stem(name):
         s=s2
 
 def natkey(s):
-    # digits compare as numbers, so "2/" sorts before "10/"
-    return [(int(t),'') if t.isdigit() else (0,t)
+    # digits compare as numbers, so "2/" sorts before "10/", and a number
+    # sorts before a word -- as the page's localeCompare(numeric) does, so
+    # "01 - Pilot.mp4" leads and "Extras/Interview.mp4" follows. With words
+    # first the card played an extra while the drawer listed the pilot on top.
+    return [(0,int(t),'') if t.isdigit() else (1,0,t)
             for t in re.split(r'(\d+)', s.lower()) if t!='']
 
 def programmes(r):
@@ -90,7 +93,9 @@ exact={}; subs=[]
 for key,label,color,section,tags,titles in GENRES:
     for t in tags:
         if t.startswith('='): exact.setdefault(norm(t[1:]),set()).add(key)
-        else: subs.append((norm(t),key))
+        # a word-start match, not a bare substring: "hindi" was finding
+        # "shindig" and "western" was finding "schwestern"
+        else: subs.append((re.compile(r'(?<!\w)'+re.escape(norm(t))),key))
 
 PROSE = {
  'western':['western','cowboy','gunfighter','sheriff','outlaw'],
@@ -116,6 +121,8 @@ PROSE = {
  'povertyrow':['republic pictures','monogram pictures'],
 }
 PROSE_RE={k:[re.compile(r'\b'+re.escape(p),re.I) for p in v] for k,v in PROSE.items()}
+# "serial" alone also finds serial killers and daytime soap serials
+PROSE_RE['serial'][0]=re.compile(r'\bserials?\b(?!\s+(?:killer|murder))(?<!soap serial)(?<!drama serial)',re.I)
 
 def tags_of(f):
     s=f.get('subject') or []
@@ -148,8 +155,8 @@ SCIFI_HINT=re.compile(r'\b(sci-?fi|science[ -]fiction|space(craft|ship)?|rocket|
 # items) are here for the same reason the television shelves are: every item on
 # them is a series, so a repeated title is a different instalment rather than a
 # redundant upload.
-TV_SHELVES={'saturdaymorningcartoons','classic_tv','classic_tv_1980s',
-            '@oasisarcade','handpicked'}
+TV_SHELVES={'saturdaymorningcartoons','classic_tv','classic_tv_1980s','classic_tv_1990s',
+            'gameshows','@oasisarcade','handpicked'}
 
 def collections_of(f):
     c=f.get('collection') or []
@@ -166,17 +173,24 @@ def collection_keys(f, keys, blob):
     return out
 
 def classify(f, dtext):
+    tv=bool(collections_of(f) & TV_SHELVES)
     keys=set()
     for t in tags_of(f):
         if t in exact: keys|=exact[t]
         for pat,k in subs:
-            if pat in t: keys.add(k)
+            if pat.search(t) and not any(x in t for x in EXCLUDE.get(k,())): keys.add(k)
     langs=f.get('language') or []
     if isinstance(langs,str): langs=[langs]
-    for l in langs:
+    # A language code files a *film* under its national cinema. On a television
+    # shelf it filed 360 German quiz-show episodes under German Cinema.
+    for l in ([] if tv else langs):
         k=LANG_MAP.get(norm(S(l)))
         if k: keys.add(k)
-    if not keys:
+    # The prose pass guesses a film's genre from its description. A game show's
+    # description is about contestants, and the guesses were noise -- "What's My
+    # Line?" as Mystery, The Price Is Right's "Cliffhangers" as a Serial -- while
+    # the shelf already gives every one of them a heading.
+    if not keys and 'gameshows' not in collections_of(f):
         blob=S(f.get('title'))+' '+dtext[:1500]
         for k,res in PROSE_RE.items():
             for r in res:
@@ -240,13 +254,17 @@ for f in films:
     if vids[0].get('o'): stats['only_original']+=1
     title=clean_text(f.get('title')) or fid
     if SPAM_TITLE.match(title): stats['spam']+=1; continue
+    if DROP_TAGS & set(tags_of(f)): stats['adult']+=1; continue
     dtext=clean_text(desc.get(fid))
     # tags, then language, then (only if nothing matched) prose -- and finally
     # the shelf the item sits on, which applies regardless of what matched.
     keys=classify(f,dtext)
     keys|=collection_keys(f, keys, title+' '+' '.join(tags_of(f))+' '+dtext[:1500])
+    # hand-picked items are filed by hand, replacing all of the above
+    hand=ITEM_KEYS.get(fid,{})
+    if 'keys' in hand: keys=set(hand['keys'])
     recs.append({
-        'id':fid,'title':title,'year':get_year(f),
+        'id':fid,'title':title,'year':hand.get('year') or get_year(f),
         'v':vids[0]['n'],'alts':[c['n'] for c in vids[1:3]],
         'eps':len(progs) if len(progs)>1 else 0,
         'dl':int(f.get('downloads') or 0),'secs':get_secs(f,r,vids[0]),
@@ -396,8 +414,11 @@ out={
             ['saturdaymorningcartoons','Saturday Morning Cartoons'],
             ['classic_tv','Classic TV'],
             ['classic_tv_1980s','Classic TV: 1980s'],
+            ['classic_tv_1990s','Classic TV: 1990s'],
+            ['gameshows','Game Shows Archive'],
             ['@oasisarcade','Oasis Arcade'],
-            ['handpicked','Hand-picked']],
+            ['handpicked','Hand-picked'],
+            ['handpicked_films','Hand-picked films']],
  'cats':[[c[0],c[1],c[2],c[3]] for c in cats],
  'fields':['id','title','video','year','downloads','seconds','cats','creator','alts','episodes'],
  'films':films_out,

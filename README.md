@@ -7,16 +7,20 @@ tens of thousands of public-domain features — and browsing it is a chore. Pict
 is a lobby for it: pick a genre, pick a title, the curtains part, and the film begins.
 Nothing opens in a new tab.
 
-Seven shelves are on the programme: **Feature Films**, the curated
-[Sci-Fi / Horror](https://archive.org/details/SciFi_Horror) selection, and five of
-television — [Classic TV](https://archive.org/details/classic_tv) and its
-[1980s wing](https://archive.org/details/classic_tv_1980s),
+Ten shelves are on the programme: **Feature Films**, the curated
+[Sci-Fi / Horror](https://archive.org/details/SciFi_Horror) selection, seven of
+television — [Classic TV](https://archive.org/details/classic_tv) with its
+[1980s](https://archive.org/details/classic_tv_1980s) and
+[1990s](https://archive.org/details/classic_tv_1990s) wings, the
+[Game Shows Archive](https://archive.org/details/gameshows),
 [Saturday Morning Cartoons](https://archive.org/details/saturdaymorningcartoons), the
 complete cartoon runs uploaded by [Oasis Arcade](https://archive.org/details/@oasisarcade),
-and a few hand-picked items of the same shape. Television gets a board section of its own
-rather than being mixed in among the features.
+and hand-picked complete series (*Reading Rainbow*, *Cowboy Bebop*, *Æon Flux*,
+*Invader Zim*, *Danger Mouse*, *Count Duckula*) — and a handful of hand-picked films
+(*Yellow Submarine*, *The Rocky Horror Picture Show*, Kraftwerk's videos 1975–2000).
+Television gets a board section of its own rather than being mixed in among the features.
 
-**36,673 titles · 115,040 programmes · 68 ways in.** One self-contained HTML file.
+**50,874 titles · 159,692 programmes · 70 ways in.** One self-contained HTML file.
 
 ![the lobby](docs/lobby.png)
 
@@ -33,7 +37,7 @@ rather than being mixed in among the features.
 - **Every episode, not just the first.** An Archive item is often a whole series in one
   upload — *The Bill* arrives as 2,401 episodes under a single identifier. Pick one from the
   drawer (`e`), with its own runtime, its own resume point and its own link; `n` or the end of
-  an episode rolls on to the next. 3,266 titles here hold more than one programme, 115,040
+  an episode rolls on to the next. 3,698 titles here hold more than one programme, 159,692
   between them.
 - **Random, everywhere.** A *Surprise me* button for the whole vault, a dice on every genre
   (shift-click a genre chip to jump straight into a random film from it), and *Random here*
