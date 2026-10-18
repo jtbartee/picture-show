@@ -156,3 +156,10 @@ The same grouping is implemented a second time in the browser (`programmesOf` in
 `src/js/10-core.js`), because the drawer builds its list from the live metadata; the two must
 agree or the count on the button contradicts the list under it. `tools/epstest.mjs` checks
 the browser half against the same cases.
+
+`node tools/aspecttest.mjs` plays films from several shelves at five window shapes (wide,
+720p, tablet portrait, phone portrait and landscape) and checks that the whole picture
+`object-fit` draws lies inside the window. The screen and the `<video>` must be pinned to the
+viewport: in a grid with an `auto` row, the video's own proportions size the row, and a 4:3
+film in a wide window grew taller than the screen and lost its bottom. It needs a fresh page
+load per shelf, so it cache-busts its URL.
