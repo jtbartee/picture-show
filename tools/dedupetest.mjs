@@ -186,7 +186,9 @@ fs.writeFileSync(D+'/all_films.json', JSON.stringify(films));
 fs.writeFileSync(D+'/all_desc.json', JSON.stringify(ITEMS.map(([identifier]) => ({ identifier, description:'' }))));
 fs.writeFileSync(D+'/cands.jsonl', cands+'\n');
 
-execFileSync('python3', [path.join(TOOLS,'build.py')], { env:{...process.env, DATA_DIR:D, MIN_FILMS:'1'}, stdio:'pipe' });
+// RIGHTS=0: the rules here are pinned on titles of every decade, and the rights
+// stage would keep only the silent ones. tools/rightstest.mjs pins that stage.
+execFileSync('python3', [path.join(TOOLS,'build.py')], { env:{...process.env, DATA_DIR:D, MIN_FILMS:'1', RIGHTS:'0'}, stdio:'pipe' });
 const out = JSON.parse(fs.readFileSync(D+'/cinema-data.json','utf8'));
 const ids = new Set(out.films.map(f => f[0]));
 const cats = out.cats.map(c => c[0]);

@@ -49,7 +49,7 @@ fs.writeFileSync(D+'/cands.jsonl',
   Object.entries(ITEMS).map(([id,c]) => JSON.stringify({ id, c })).join('\n')+'\n');
 
 execFileSync('python3', [path.join(TOOLS,'build.py')],
-  { env:{...process.env, DATA_DIR:D, MIN_FILMS:'1'}, stdio:'pipe' });
+  { env:{...process.env, DATA_DIR:D, MIN_FILMS:'1', RIGHTS:'0'}, stdio:'pipe' });
 const out = JSON.parse(fs.readFileSync(D+'/cinema-data.json','utf8'));
 
 const byId = {};

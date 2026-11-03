@@ -3,7 +3,10 @@
 Five steps. Everything lands in `../data/` unless you set `DATA_DIR`.
 
 The programme is built from the shelves listed at the top of `scrape.mjs`. Add
-one there and, if it deserves its own heading, give it one in `taxonomy.py`:
+one there and, if it deserves its own heading, give it one in `taxonomy.py`. What
+reaches the lobby from any of them is only what is out of copyright — see
+[the rights stage](#the-rights-stage) — so the counts below are what is scraped,
+not what is shown:
 
 | shelf | items | what it is |
 |---|---|---|
@@ -48,7 +51,7 @@ genres, so `build.py` splits it (see the comment there).
 | 1 | `node tools/scrape.mjs` | ~6 min | `all_films.json`, `all_desc.json`, `sweep_pool.json` |
 | 2 | `python3 tools/sweep.py` | ~1 min | appends to `all_films.json`, `all_desc.json` |
 | 3 | `node tools/resolve.mjs` | **many hours** | `cands.jsonl` |
-| 4 | `python3 tools/build.py` | ~30 s | `cinema-data.json` |
+| 4 | `python3 tools/build.py` | ~30 s | `cinema-data.json` (reads `tools/pd_list.json`) |
 | 5 | `node build.mjs` | ~2 s | `index.html` |
 
 Step 2 must follow step 1 every time: `scrape.mjs` rewrites `all_films.json` from
@@ -98,6 +101,47 @@ was dropping *Broadcast News*, *My Big Fat Greek Wedding* and *How to Marry a Mi
 It records *every* playable encode per item rather than picking one, so re-ranking later
 (step 3) costs nothing. That matters — the first version of this pipeline stored only its
 chosen file and the choice turned out to be wrong, which meant re-fetching everything.
+
+## The rights stage
+
+Picture Show plays what it lists, full screen, so since November 2026 it lists only what
+is out of copyright in the United States. `build.py` applies this to every shelf, after
+classification and before the dedupe, so an uncleared copy never stands in for a cleared
+one. A title is shown when:
+
+- **it was published 95 years ago or more** — on 1 January 2026, everything from 1930 and
+  before. The cutoff is `THIS_YEAR-96`, so it moves on by itself; or
+- **it is on Wikipedia's sourced lists** of public-domain films and cartoons, matched on
+  the dedupe's title key and a year within one (a remake shares the title). Every entry
+  there cites its reason — not renewed, no notice, a US government work. `node
+  tools/pdlist.mjs` refreshes `tools/pd_list.json` from them; it is committed, so a build
+  needs no network.
+
+The Archive's `licenseurl` is **not** used. It is whatever the uploader picked: *The
+Santa Clause 3* is marked public domain and *Fritz the Cat* Creative Commons.
+
+The year has to be believable, because it is the uploader's too:
+
+- an undated title is not shown, and nor is one dated before 1888 (*Jungle Raiders*, 1985,
+  is dated 1885);
+- every year the title or a file name mentions has to agree — "Atomic Test near Bikini
+  Atoll in 1946" is dated 1925, and a "Disney UK VHS Collection" dated 1922 holds a file
+  called *The Lion King 1994*;
+- an item of more than one programme must give its year in its own title, as "Les Vampires
+  (1915)" and "Oswald the Lucky Rabbit (1927-1930)" do. One that doesn't is somebody's
+  compilation: "Filmography: Alfred Hitchcock" is dated 1899.
+
+Colorized prints are never shown: the colour is a new work with its own copyright.
+`NOT_SHOWN` holds the one cleared title the programme keeps out anyway, *Debbie Does
+Dallas*, which is porn. Of 117,489 playable items, 7,166 pass, and 5,515 titles survive
+the dedupe — almost all of them silent. Every television shelf, the hand-picked items and
+nearly all of the sweep are dropped; they are still scraped, so the rule is the only thing
+to change if the site's footing does. `RIGHTS=0` turns the stage off, which is how the
+fixture tests of the rules above run.
+
+What the rule cannot see: a public-domain film can carry a newer score or restoration on
+a particular upload, an underlying novel or play can still be in copyright, and rights
+differ outside the US.
 
 ## What step 3 does
 
@@ -222,7 +266,11 @@ Planet*, *The Tomorrow People* — are filed by hand in `ITEM_KEYS`.
 
 ## Testing the pipeline
 
-`node tools/dedupetest.mjs` runs `build.py` against a hand-written catalogue in a temp
+`node tools/rightstest.mjs` runs `build.py` against a hand-written catalogue and checks the
+rights stage: the cutoff year, licences ignored, list matches and remakes, colorized prints,
+unbelievable years and compilations.
+
+`node tools/dedupetest.mjs` runs `build.py` (with `RIGHTS=0`) against a hand-written catalogue in a temp
 `DATA_DIR` and checks the classification and dedupe rules — episode brackets surviving,
 re-uploads still collapsing, the `SciFi_Horror` split, non-video items dropped, the sweep's
 feature-or-whole-run rule and both audits. No network, about a second.
@@ -231,9 +279,9 @@ feature-or-whole-run rule and both audits. No network, about a second.
 blocklists and their known false positives, single instalments against whole runs.
 
 `node tools/duptest.mjs` audits the **built** catalogue rather than a fixture: that no
-identifier appears twice, that every shelf above actually reaches the lobby, that the
-hand-picked and account items survived the dedupe, and that no two surviving rows are the
-same picture. Its title normaliser is deliberately *not* build.py's — a check that borrows
+identifier appears twice, that every shelf above is still scraped, that everything shown
+is out of copyright by its own cruder reading of the rule, and that no two surviving rows
+are the same picture. Its title normaliser is deliberately *not* build.py's — a check that borrows
 the logic it is checking proves only that the code equals itself — so it over-collapses on
 purpose and then prints what it found for judging.
 

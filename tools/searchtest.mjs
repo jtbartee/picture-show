@@ -141,10 +141,10 @@ ok('a result opened after Enter still plays', rs >= 1, 'readyState ' + rs);
 await c.eval(`document.getElementById('pExit').click()`); await sleep(2200);
 
 // ---- a search link still works cold, which is what route() is for
-await c.send('Page.navigate',{url:URL_BASE+'#/s/dracula'});
+await c.send('Page.navigate',{url:URL_BASE+'#/s/nosferatu'});
 await sleep(1600);
 ok('a shared search link opens its results', (await cards())>0, (await cards())+' results');
-ok('and fills the box', (await c.eval(`document.getElementById('q').value`))==='dracula');
+ok('and fills the box', (await c.eval(`document.getElementById('q').value`))==='nosferatu');
 
 console.log('\nexceptions:',errors.length);
 errors.slice(0,6).forEach(e=>console.log('   !',String(e).split('\n')[0]));
