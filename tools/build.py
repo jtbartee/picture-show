@@ -403,9 +403,6 @@ for f in films:
         'tv':form=='series' or (form is None and bool(collections_of(f) & TV_SHELVES)),
         'pick':bool(collections_of(f) & PICK_SHELVES),
         'hand':'keys' in hand,
-        # every year the item names, for the rights stage below
-        'named':[int(y) for y in re.findall(r'(?<!\d)((?:18[89]|19|20)\d\d)(?!\d)',
-                                            ' '.join([title]+[p[0]['n'] for p in progs]))],
     })
 print('stage1:',dict(stats),'-> kept',len(recs))
 
@@ -509,55 +506,6 @@ def collapse(groups):
             for o in group[1:]: surv['keys']|=o['keys']
         out.append(surv); lost+=len(group)-1
     return out,lost
-
-# ---------- stage 2b: only what is out of copyright (Nov 2026)
-# Picture Show plays what it lists, full screen, so it lists only pictures whose
-# US copyright is over -- citing a rights holder is not permission. The test
-# cannot be the Archive's licence field: that is whatever the uploader chose,
-# and "The Santa Clause 3" is marked public domain while Fritz the Cat is
-# Creative Commons. So a picture is shown when either
-#   - it was published 95 years ago or more (on 1 January 2026, 1930 and before),
-#   - or a sourced list says its copyright lapsed (tools/pd_list.json, from
-#     Wikipedia by tools/pdlist.mjs: not renewed, no notice, US government work),
-#     matched on title and year within one -- a remake shares the title.
-# A colorized print is a new work with its own copyright, so it is never shown.
-# RIGHTS=0 turns the stage off, for the fixture tests of the rules above.
-PD_YEAR=THIS_YEAR-96
-PD_LIST=collections.defaultdict(set)
-for t,y in json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)),'pd_list.json'))):
-    PD_LIST[base_title({'title':t})].add(y)
-COLORIZED=re.compile(r'\bcolou?ri[sz](?:ed|ation)\b', re.I)
-# Cleared, but hardcore: published without a notice, and no more on a general
-# programme than the rest of what the sweep keeps out as porn.
-NOT_SHOWN={'debbiedoesdallas'}
-
-SINCE=re.compile(r'\b(?:since|est\.?|established)\s+((?:18|19|20)\d\d)\b', re.I)
-
-def rights_clear(x):
-    if COLORIZED.search(x['title']) or not x['year'] or base_title(x) in NOT_SHOWN: return False
-    # Nothing on film is older than 1888: "Jungle Raiders" (1985) is dated 1885.
-    if x['year']<1888: return False
-    listed=[y for y in PD_LIST.get(base_title(x),()) if abs(x['year']-y)<=1]
-    # The Archive's year is the uploader's, and on a compilation it is anything:
-    # "Filmography: Alfred Hitchcock" is dated 1899. So the year has to agree
-    # with every year the title and the file names mention as well...
-    upto=max(listed+[PD_YEAR])
-    if listed: return all(y<=upto+1 for y in x['named'] if y<=THIS_YEAR)
-    if x['year']>PD_YEAR or any(PD_YEAR<y<=THIS_YEAR for y in x['named']): return False
-    # ...and an item of many programmes has to say its year in its own title, as
-    # "Les Vampires (1915)" and "Oswald the Lucky Rabbit (1927-1930)" do. One
-    # that doesn't is somebody's collection: "TV Fighting Crime Part 7", dated
-    # 1903, is 439 episodes of television. "Since 1904" is not a release year.
-    if x['eps']:
-        own=[int(y) for y in re.findall(r'(?<!\d)((?:18[89]|19|20)\d\d)(?!\d)', SINCE.sub(' ',x['title']))]
-        return bool(own) and max(own)<=PD_YEAR
-    return True
-
-if os.environ.get('RIGHTS','1')!='0':
-    before=len(recs)
-    recs=[x for x in recs if rights_clear(x)]
-    print('rights: kept %d of %d (published %d or before, or on the public-domain list)'
-          % (len(recs),before,PD_YEAR))
 
 bytitle=collections.defaultdict(list)
 for x in recs:

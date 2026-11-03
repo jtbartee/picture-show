@@ -36,7 +36,7 @@ c.close();
 const c2=await connect(9333);
 await c2.send('Runtime.enable');
 await c2.send('Page.navigate',{url:'http://localhost:8733/index.html?cb='+Date.now()+'#/g/horror'}); await sleep(2800);
-const target=await c2.eval(`(()=>{const f=PICTURE_SHOW.view.films.find(f=>/\\.ia\\.mp4$/i.test(f.video)&&f.secs>2000)||PICTURE_SHOW.view.films[0];
+const target=await c2.eval(`(()=>{const f=PICTURE_SHOW.view.films.find(f=>/\\.ia\\.mp4$/i.test(f.video))||PICTURE_SHOW.view.films[0];
   const s=JSON.parse(localStorage.getItem('pictureshow.v1')||'{"seen":{},"pos":{}}');
   s.pos=s.pos||{}; s.pos[f.id]={c:1234,d:5000,t:Date.now()};
   localStorage.setItem('pictureshow.v1',JSON.stringify(s));

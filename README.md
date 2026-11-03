@@ -3,22 +3,28 @@
 **A repertory cinema for the Internet Archive.**
 
 The Archive's [Feature Films](https://archive.org/details/feature_films) collection holds
-tens of thousands of features — and browsing it is a chore. Picture Show
+tens of thousands of public-domain features — and browsing it is a chore. Picture Show
 is a lobby for it: pick a genre, pick a title, the curtains part, and the film begins.
 Nothing opens in a new tab.
 
-Only pictures that are out of copyright in the United States are on the programme:
-anything published 95 years ago or more (in 2026, everything from 1930 and before), and
-the later films a sourced list says lost their copyright — *Night of the Living Dead*,
-*His Girl Friday*, *Detour*, *Charade*, the Fleischer *Superman* cartoons. That rule is
-applied to everything the pipeline looks at: [Feature Films](https://archive.org/details/feature_films),
-the [Sci-Fi / Horror](https://archive.org/details/SciFi_Horror) selection, the television
-and cartoon shelves, a handful of hand-picked items, and a sweep of the whole
+Ten shelves are on the programme: **Feature Films**, the curated
+[Sci-Fi / Horror](https://archive.org/details/SciFi_Horror) selection, seven of
+television — [Classic TV](https://archive.org/details/classic_tv) with its
+[1980s](https://archive.org/details/classic_tv_1980s) and
+[1990s](https://archive.org/details/classic_tv_1990s) wings, the
+[Game Shows Archive](https://archive.org/details/gameshows),
+[Saturday Morning Cartoons](https://archive.org/details/saturdaymorningcartoons), the
+complete cartoon runs uploaded by [Oasis Arcade](https://archive.org/details/@oasisarcade),
+and hand-picked complete series (*Reading Rainbow*, *Cowboy Bebop*, *Æon Flux*,
+*Invader Zim*, *Danger Mouse*, *Count Duckula*) — a handful of hand-picked films
+(*Yellow Submarine*, *The Rocky Horror Picture Show*, Ralph Bakshi's *Fritz the Cat*,
+*Heavy Traffic* and *Wizards*, Kraftwerk's videos 1975–2000) — and a sweep of the whole
 [Moving Image Archive](https://archive.org/details/movies) for every English-language
-feature and complete series on it. Most of what those shelves hold is still in copyright,
-so most of it is not shown; the silent era is, nearly all of it.
+feature and complete series on it: the DVD Tray, the VHS Vault, the laserdisc archive,
+unsorted television, the anime shelves and the film-like part of Community Video.
+Television gets a board section of its own rather than being mixed in among the features.
 
-**5,515 titles · 6,042 programmes · 48 ways in.** One self-contained HTML file.
+**107,118 titles · 1,059,599 programmes · 72 ways in.** One self-contained HTML file.
 
 ![the lobby](docs/lobby.png)
 
@@ -32,11 +38,11 @@ so most of it is not shown; the silent era is, nearly all of it.
   cinemas, forms and decades — derived from the Archive's own metadata by hand-written
   rules. Anything that defies filing lands in **The Vault**, so nothing is unreachable.
 - **Curtains.** Choose a film and the velvet actually rolls back.
-- **Every episode, not just the first.** An Archive item is often a whole serial in one
-  upload — *Oswald the Lucky Rabbit* arrives as 57 cartoons under a single identifier. Pick
-  one from the drawer (`e`), with its own runtime, its own resume point and its own link; `n`
-  or the end of an episode rolls on to the next. 129 titles here hold more than one
-  programme, 656 between them.
+- **Every episode, not just the first.** An Archive item is often a whole series in one
+  upload — *The Bill* arrives as 2,401 episodes under a single identifier. Pick one from the
+  drawer (`e`), with its own runtime, its own resume point and its own link; `n` or the end of
+  an episode rolls on to the next. 23,264 titles here hold more than one programme, 975,745
+  between them.
 - **Random, everywhere.** A *Surprise me* button for the whole vault, a dice on every genre
   (shift-click a genre chip to jump straight into a random film from it), and *Random here*
   inside a genre.
@@ -62,17 +68,11 @@ Archive item page, which is the authority on that film's rights and provenance.
 The Internet Archive is a non-profit library that pays for all of the bandwidth this page
 uses. If you get any pleasure out of this, [donate to them](https://archive.org/donate).
 
-Picture Show plays what it lists, full screen, so it lists only what is out of copyright in
-the United States — crediting a rights holder is not permission. The Archive's own licence
-field is no help there: it is whatever the uploader chose, and *The Santa Clause 3* is
-marked public domain. So a title is shown when it was published 95 years ago or more, or
-when it is on Wikipedia's sourced
-[list of public-domain films](https://en.wikipedia.org/wiki/List_of_films_in_the_public_domain_in_the_United_States)
-(or [its animated counterpart](https://en.wikipedia.org/wiki/List_of_animated_films_in_the_public_domain_in_the_United_States)),
-whose every entry cites why: not renewed, no notice, a US government work. Colorized prints
-are never shown — the colour is a new work with its own copyright. A film in the public
-domain can still carry a newer score or restoration, rights differ outside the US, and the
-Archive's item page is always the last word. Posters, stills and metadata are the Archive's.
+The Feature Films shelf is largely public domain or openly licensed. The hand-picked titles
+and the Moving Image Archive sweep are different: they are what users have uploaded to the
+Archive, and much of it is still in copyright. Picture Show only links to what the Archive
+itself serves; rights vary by country, and the Archive's item page is always the last word.
+Posters, stills and metadata are the Archive's.
 
 ## Running it
 
@@ -87,14 +87,13 @@ python3 -m http.server 8733
 
 `data/cinema-data.json` is committed, so `node build.mjs` alone rebuilds `index.html` on a
 fresh clone. To regenerate the catalogue itself, the pipeline is five steps in `tools/`
-(see `tools/README.md` for the details), and `node tools/pdlist.mjs` refreshes the
-public-domain list the fourth one reads:
+(see `tools/README.md` for the details):
 
 ```sh
 node tools/scrape.mjs      # page the Archive for every shelf, and the sweep's candidates
 python3 tools/sweep.py     # sift the sweep: English, and a film or a series
 node tools/resolve.mjs     # per item, record every playable encode  (slow: hours)
-python3 tools/build.py     # keep what is out of copyright, classify, de-duplicate
+python3 tools/build.py     # classify, de-duplicate, emit cinema-data.json
 node build.mjs             # inline the data into index.html
 ```
 
@@ -146,11 +145,10 @@ node tools/searchtest.mjs # the box stays quiet until it is submitted
 The catalogue pipeline has its own tests, which need neither a browser nor the network:
 
 ```sh
-node tools/rightstest.mjs # only what is out of copyright, on a fixture
 node tools/dedupetest.mjs # classification and de-duplication rules, on a fixture
 node tools/sweeptest.mjs  # the Moving Image Archive sweep's rules, on a fixture
 node tools/progtest.mjs   # splitting an item's files into programmes
-node tools/duptest.mjs    # a duplicates and rights audit of the catalogue actually built
+node tools/duptest.mjs    # a duplicates audit of the catalogue that was actually built
 ```
 
 ## Credits

@@ -6,9 +6,9 @@
 // equals itself. The normaliser here is cruder on purpose; where it finds a
 // collision build.py let through, the pair is printed so it can be judged.
 //
-// It also pins what the rights stage is supposed to mean -- everything on the
-// programme is out of copyright -- by its own cruder reading, and that every
-// shelf and pick is still scraped. Reads data/ only -- no browser, no network.
+// It also pins what adding a shelf is supposed to mean: every shelf on the
+// programme reaches the lobby, and a hand-picked item is still there when the
+// dedupe has finished with it. Reads data/ only -- no browser, no network.
 //
 // Those shelf checks need all_films.json, which is a pipeline intermediate and
 // not committed; on a fresh clone they are skipped and the catalogue-only
@@ -86,38 +86,50 @@ for (const f of data.films) {
 }
 ok(dupIds.length === 0, 'no identifier appears twice', dupIds.slice(0, 5).join(', '));
 
-/* ---------- 2. every shelf is still scraped. Since the rights stage (Nov
-   2026) a shelf of television can be on the programme with nothing on it --
-   none of it is out of copyright yet -- so what is pinned is that it is still
-   being looked at, and what it gives is printed to be judged. */
+/* ---------- 2. every shelf reaches the lobby */
 console.log('\nshelves');
 if (!films) console.log('  skip   needs data/all_films.json (run tools/scrape.mjs)');
 for (const s of films ? SHELVES : []) {
   const ids = onShelf(s);
-  ok(ids.length > 0, `${s}: ${ids.filter(i => kept.has(i)).length} of ${ids.length} scraped items on the programme`);
-}
-console.log('\nhand-picked items');
-for (const id of films ? PICKS : []) {
-  ok(shelfOf.has(id), `${id} was scraped`,
-     kept.has(id) ? 'on the programme' : unplayable.has(id) ? 'no playable encode' : 'not on the programme');
+  const survived = ids.filter(i => kept.has(i)).length;
+  ok(ids.length > 0 && survived > 0,
+     `${s}: ${survived} of ${ids.length} scraped items on the programme`);
 }
 
-/* ---------- 3. everything shown is out of copyright, by a cruder reading than
-   build.py's: its year is 95 years gone, or Wikipedia's list (tools/pd_list.json)
-   carries a title it contains, a year either way. And no colorized print. */
-console.log('\nrights');
-const PD = new Date().getFullYear() - 96;
-const listed = JSON.parse(fs.readFileSync(new URL('pd_list.json', import.meta.url)))
-  .map(([t, y]) => [crude(t), y]).filter(([t]) => t.length >= 3);   // "D.O.A."
-const onList = f => listed.some(([l, ly]) => crude(f[F.title]).includes(l) && Math.abs(ly - f[F.year]) <= 1);
-const uncleared = data.films.filter(f => !(f[F.year] && f[F.year] <= PD) && !onList(f));
-ok(uncleared.length === 0, `every title is from ${PD} or before, or on the public-domain list`,
-   uncleared.slice(0, 6).map(f => `"${f[F.title]}" (${f[F.year]})`).join(' | '));
-const colour = data.films.filter(f => /colou?ri[sz]ed/i.test(f[F.title]));
-ok(colour.length === 0, 'no colorized print', colour.slice(0, 6).map(f => f[F.title]).join(' | '));
-const later = data.films.filter(f => f[F.year] <= PD && !onList(f) &&
-  (String(f[F.title]).match(/\b(?:19|20)\d\d\b/g) || []).some(y => +y > PD && +y <= PD + 96));
-ok(later.length === 0, 'no title dated old names a later year', later.slice(0, 6).map(f => f[F.title]).join(' | '));
+/* ---------- 3. nothing on the small shelves may vanish from the programme.
+   A 90-episode upload losing to a popular single-episode copy of the same name
+   is exactly the failure the "most programmes wins" tie-break exists to stop,
+   and these two shelves are where it would bite. Being dropped is fine on its
+   own -- another upload of the same picture may simply be the better copy --
+   so what is checked is that the picture is still reachable under some
+   identifier, and the survivor's programme count is printed to be judged. */
+console.log('\nhand-picked and account items survive dedupe');
+if (!films) console.log('  skip   needs data/all_films.json (run tools/scrape.mjs)');
+for (const id of films ? PICKS : []) {
+  ok(shelfOf.has(id), `${id} was scraped`);
+  ok(kept.has(id), `${id} is on the programme`,
+     kept.has(id) ? '' : unplayable.has(id) ? 'no playable encode' : 'dropped by the dedupe');
+}
+if (films) {
+  // These uploads are titled "<show> (Complete)", so an exact crude match would
+  // miss the plain "<show>" that replaced one. Containment either way is loose
+  // enough to find the stand-in and tight enough at this length to mean it.
+  const survivors = data.films.map(f => [crude(f[F.title]), f]);
+  const standIns = t => survivors.filter(([s]) =>
+    t.length >= 8 && (s.includes(t) || t.includes(s)) && s.length >= 8).map(([, f]) => f);
+
+  const oasis = onShelf('@oasisarcade');
+  const gone = [];
+  for (const id of oasis) {
+    if (kept.has(id) || unplayable.has(id)) continue;
+    const stand = standIns(crude(shelfTitle.get(id)));
+    if (!stand.length) { gone.push(id + ' (nothing else carries it)'); continue; }
+    console.log(`  note   ${id} collapsed into `
+      + stand.slice(0, 3).map(f => `${f[F.id]} (${f[F.episodes] || 1}p)`).join(', '));
+  }
+  ok(gone.length === 0,
+     `all ${oasis.length} @oasisarcade uploads are reachable`, gone.join(', '));
+}
 
 /* ---------- 4. the independent near-duplicate sweep.
    Crude on purpose: lowercase, drop years, drop everything that is not a
