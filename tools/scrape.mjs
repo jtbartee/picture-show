@@ -49,8 +49,44 @@ export const PICKS = [
     '10kraftwerkpopifokusswedishtvspecial01042002',  // Kraftwerk, videos 1975-2000
     'the-beatles-yellow-submarine',
     'ROCKY-HORROR',
+    'fritz-the-cat_202512',                   // Ralph Bakshi, 1972
+    'heavy-traffic_202512',                   // Ralph Bakshi, 1973
+    'wizards.-1977.1080p.-blu-ray.x-264-oft', // Ralph Bakshi, 1977
   ] },
 ];
+
+// The Moving Image Archive's root collection, `movies`, is 17.5 million items
+// across 8,775 sub-collections, and most of it is not a film or a programme:
+// off-air news, livestreams, lectures, sermons, game replays, commercials. So it
+// is not scraped as a shelf. These queries take a first cut of it -- the film
+// and television sub-collections not already on the programme, and the slice
+// of Community Video whose tags look like film -- into sweep_pool.json, and
+// tools/sweep.py sifts that before anything is resolved. Each floor on
+// item_size is far below what a feature or a whole run weighs.
+const SWEEP_ON   = 'NOT collection:(' + COLLECTIONS.join(' OR ') + ')';
+const SWEEP_NOT  = 'NOT collection:(911 OR tvnews OR tvarchive OR news_and_journalism OR political_ads OR '
+                 + 'tv_ads OR classic_tv_commercials OR classic_tv_commercials_emperor OR vhscommercials OR '
+                 + 'hentaiarchive OR stock_footage OR movie_trailers OR home_movies OR vhsopenings OR '
+                 + 'vhstrailers OR vhsnews OR adviews OR electionmedia OR uk-adverts)';
+// In English, or not saying -- sweep.py decides the items that do not say.
+const SWEEP_LANG = '(language:(eng OR english OR en OR "en-us" OR "en-gb") OR (NOT language:[* TO *]) OR '
+                 + 'title:(english OR dubbed OR dub OR "eng sub" OR subbed OR subtitled OR "english subtitles"))';
+const FILMISH    = 'subject:(movie OR movies OR film OR films OR "feature film" OR "full movie" OR drama OR '
+                 + 'comedy OR horror OR thriller OR western OR "science fiction" OR "sci-fi" OR scifi OR '
+                 + 'animation OR animated OR action OR adventure OR fantasy OR mystery OR crime OR romance OR '
+                 + '"film noir" OR "tv series" OR "television series" OR "complete series" OR sitcom OR anime OR '
+                 + 'cartoon OR cartoons OR musical OR war OR documentary)';
+const size = gb => `item_size:[${gb * 1e9} TO 99999999999999]`;
+export const SWEEPS = [
+  // a whole series is never small
+  { label: 'television', q: 'collection:(television OR television_inbox OR childrenstelevision OR vhstvshows OR '
+      + 'vhskids OR anime OR anime_miscellaneous OR anime-series OR animepacks OR animecollection_pokemon OR '
+      + 'animecollection_onepiece OR animefansubs OR fansubmarine) AND ' + size(2) },
+  { label: 'film', q: 'collection:(moviesandfilms OR vhsmovies OR televisionmovies OR laserdiscs OR '
+      + 'subtitled_movies OR KINOfilm OR dvdtray OR dvdtray_inbox OR vhsvault OR animationandcartoons OR '
+      + 'animation_unsorted) AND ' + size(0.25) },
+  { label: 'community', q: `collection:opensource_movies AND ${FILMISH} AND ` + size(0.25) },
+].map(s => ({ ...s, q: `${s.q} AND mediatype:movies AND ${SWEEP_ON} AND ${SWEEP_NOT} AND ${SWEEP_LANG}` }));
 
 // An item's `collection` array also lists every user favourite it has ever
 // landed in -- hundreds of `fav-*` entries on a popular film, which would bloat
@@ -175,3 +211,15 @@ const per = {};
 for (const it of items) for (const c of it.collection) per[c] = (per[c] || 0) + 1;
 console.error(`done — ${items.length} items`);
 for (const c of TRACKED) console.error(`  ${c}: ${per[c] || 0}`);
+
+// The sweep keeps each item's description and full collection list: sweep.py
+// reads both, and trims the collections to the shelves it knows itself.
+console.error('\nsweep of the Moving Image Archive…');
+const pool = new Map();
+for (const s of SWEEPS) {
+  for (const it of await scrape(s.q, FIELDS + ',item_size,description', 'sweep ' + s.label)) {
+    if (!byId.has(it.identifier)) pool.set(it.identifier, it);
+  }
+}
+fs.writeFileSync(`${DATA_DIR}/sweep_pool.json`, JSON.stringify([...pool.values()]));
+console.error(`  ${pool.size} candidates for tools/sweep.py`);

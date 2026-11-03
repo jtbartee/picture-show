@@ -80,7 +80,87 @@ const ITEMS = [
   ['au11','The Price is Right (1996): Cliffhangers',1996,['gameshows'],[],'movies',1800],
   ['au10','Some Adult Animation',2023,['gameshows'],['koikatsu','r18'],'movies',600],
   ['ROCKY-HORROR','ROCKY HORROR PICTURE SHOW 1975',null,['handpicked_films'],['halloween','punk rock films'],'movies',6000],
+  // --- the Moving Image Archive sweep (tools/sweep.py). Every swept item has
+  //     passed the metadata half of the rule; these exercise the half that
+  //     needs the files: a feature, or a whole run, and nothing else.
+  ['sw1','Some Feature (1985 VHS)',1985,['movies','vhsmovies'],[],'movies',5400],
+  ['sw2','A Cartoon Short',1950,['movies','animationandcartoons'],[],'movies',420],
+  ['sw3','Malcolm in the Middle (The Complete Series) [2000 - 2006]',2000,['movies','television'],[],'movies',1320,151,900],
+  ['sw4','Malcolm in the Middle Complete Series',2000,['movies','television'],[],'movies',1325,151,50],
+  ['sw5','Malcolm in the Middle Season 1',2000,['movies','television'],[],'movies',1320,16],
+  // two different seasons under one bare title, the same size: both survive
+  ['sw17','Doctor Who',1963,['movies','television'],[],'movies',1500,13],
+  ['sw18','Doctor Who',1964,['movies','television'],[],'movies',1440,13],
+  // two runs that differ only by the years in a bracket: both survive
+  ['ou1','OU M203 (1980-1996) (Intro to Pure Mathematics)',null,['classic_tv'],[],'movies',1467,31],
+  ['ou2','OU M203 (1997-2005) (Intro to Pure Mathematics)',null,['classic_tv'],[],'movies',1471,28],
+  ['pc1','Presidential Campaign Ads 1964',null,['classic_tv'],[],'movies',51,10],
+  ['pc2','Presidential Campaign Ads 1968',null,['classic_tv'],[],'movies',55,11],
+  // the same run, years in one title only: one survives
+  ['bk1',"Bucky O'Hare and the Toad Wars!: The Complete Series (1991)",1991,['@oasisarcade'],[],'movies',1257,13],
+  ['bk2',"Bucky O'Hare And The Toad Wars! Complete Series",1991,['classic_tv'],[],'movies',1257,13],
+  // --- the category audit (Nov 2026)
+  ['na1','Wagon Train - Alias Bill Hawks',1958,['classic_tv'],['westerns','tv series','television'],'movies',3000],
+  ['na2','The Vise - If This Be Murder (1956)',1956,['feature_films'],['television','teleplay'],'movies',1700],
+  ['na3','Hometime - Framing Walls',1993,['classic_tv_1990s','classic_tv'],['hometime','home repair','episode'],'movies',1500],
+  ['na4','The Green Hornet Strikes Again Chapter 08',1941,['classic_tv'],['cliffhanger serial','chapter'],'movies',1100],
+  ['na5','Family Feud - 11/8/91',1991,['gameshows'],['Family','Feud','game','show'],'movies',1400],
+  ['na6','Dementia',1955,['feature_films'],['short','horror'],'movies',3480],
+  ['na7','1934 Gern Hab Ich Die Fraun Gekuesst',1934,['feature_films'],['Deutscher Film','Third Reich Cinema'],'movies',5000],
+  ['na8','1941 Alarmstufe V',1941,['feature_films'],['Deutscher Film','Third Reich Cinema'],'movies',5100],
+  ['na9','1936 Der Fuehrer eroeffnet das Winterhilfswerk',1936,['feature_films'],['Third Reich Cinema','Führer'],'movies',206],
+  ['ny1','Behind the High Wall (1956) - Full Movie',null,['feature_films'],[],'movies',5100],
+  ['ny2','1972. Around the World in 80 Days (Episode 15)',2023,['saturdaymorningcartoons'],[],'movies',1300],
+  ['ny3','Bluey (2018) - 4K Upscale',2024,['classic_tv'],[],'movies',420,30],
+  ['ny4','Naked Came the Stranger',2025,['movies','vhsmovies'],[],'movies',5400],
+  ['ny5','Jurassic World Rebirth (2025)',2025,['movies','opensource_movies'],[],'movies',7800],
+  // --- a colourised print is a different print, even when it says so in a bracket
+  ['cz1','White Zombie (restored, colorized) (1932, pre-code)',1932,['feature_films'],['horror'],'movies',4100],
+  ['sw6','The Jungle Book (1991 VHS)',1991,['movies','vhsmovies'],[],'movies',270,18],
+  ['sw7','Ted',2012,['movies','opensource_movies'],['comedy'],'movies',6360],
+  ['sw8','Kesari',2019,['movies','opensource_movies'],['movie'],'movies',9000],
+  ['sw9','A Made-for-TV Picture',1978,['movies','television'],[],'movies',5400],
+  ['sw10','Some Show S01E05',1990,['movies','television'],[],'movies',2700],
+  ['sw11','Betty Boop Cartoons Complete Collection',1934,['movies','animationandcartoons'],[],'movies',420,40],
+  ['sw12','A Film in Two Parts',1970,['movies','vhsmovies'],[],'movies',2700,2],
+  ['sw13','Some Anime Feature',1988,['movies','anime'],[],'movies',7440],
+  ['sw19','DVD-6547 - American Idol - January 24, 2006',2006,['movies','dvdtray'],[],'movies',7200,2],
+  ['sw20','A Film in Eight Chunks',2012,['movies','opensource_movies'],[],'movies',660,8],
+  ['sw21','A Shorter Run of Twelve',1999,['movies','television'],[],'movies',1320,12],
+  ['sw25','Ginger Snaps (2000 film)',2000,['movies','vhsmovies'],['horror'],'movies',1080,6],
+  ['sw26',"Hiromi's Sonicbloom Live In Concert (2007)",2007,['movies','dvdtray'],['music'],'movies',360,14],
+  // --- the picks, and the swept copies of them that must collapse into them
+  ['wizards.-1977.1080p.-blu-ray.x-264-oft','Wizards (1977)',2026,['handpicked_films'],['Animation','Postnuke'],'movies',4860,1,5000],
+  ['sw14','Wizards.1977.1080p.BluRay.x264-OFT',1977,['movies','opensource_movies'],['animation'],'movies',4860,1,40],
+  ['fritz-the-cat_202512','Fritz the Cat',1972,['handpicked_films'],['Ralph Bakshi'],'movies',4680,1,5000],
+  ['sw15','Fritz the Cat',null,['movies','dvdtray'],[],'movies',4700,1,40],
+  // A three-file Blu-ray rip of the same film with more downloads, and an
+  // undated copy whose title year hides behind "HD": the pick beats both.
+  ['sw22','Wizards',1977,['movies','dvdtray'],[],'movies',4855,3,9000],
+  ['sw23','Wizards 1977 HD',null,['movies','opensource_movies'],[],'movies',4861,1,9000],
+  ['sw24','Heavy Traffic ☆ Ralph Bakshi ☆ 1973',1973,['movies','opensource_movies'],['family','kids'],'movies',4560,1,9000],
+  ['gl1',"Girls' Last Tour (english sub)",2014,['movies','anime'],[],'movies',1465,12],
+  ['gl2',"Girls' Last Tour (English dub)",null,['movies','anime'],[],'movies',1481,12],
+  // the same upload spelt two ways: same runtime to the second, same programmes
+  ['rw1','The Road to War (3/8) : USSR',1989,['movies','television'],[],'movies',2916],
+  ['rw2','The Road To War ( 3-8) USSR',null,['movies','television'],[],'movies',2916],
+  ['ms1','Misfits of Science - Complete Series 1985',1985,['movies','television'],[],'movies',2900,16],
+  ['ms2','Misfits Of Science (Complete Series)',null,['movies','television'],[],'movies',2903,16],
+  // two VHS rips of one film, the source in a bracket on one of them
+  ['vh1',"Disney's Cool Runnings VHS 1994",1994,['movies','vhsmovies'],[],'movies',6245],
+  ['vh2',"Disney's Cool Runnings (VHS) 1994",1994,['movies','vhsmovies'],[],'movies',6245],
+  // ...and an undated copy whose runtime does not match is not the same picture
+  ['heavy-traffic_202512','Heavy Traffic',1973,['handpicked_films'],[],'movies',4560,1,5000],
+  ['sw16','Heavy Traffic',null,['movies','dvdtray'],[],'movies',6000,1,40],
+  ['fantastic-planet__1973','Fantastic Planet',1973,['feature_films'],['Barry Bostwick','1970s'],'movies',4320],
+  ['the-tomorrow-people-1973-79','The Tomorrow People (1973 - 79) Complete Series',1973,['classic_tv'],
+   ["children's",'sci-fi','slapstick','espionage'],'movies',1500,70],
 ];
+// The first file in an item, where its name is what is under test.
+const FILES = {
+  sw7: 'Ted.2012.BDRip.1080p.Rus.Eng.mp4',     // another language, and English beside it
+  sw8: 'Kesari.2019.Hindi.720p.HDRip.mp4',      // another language only
+};
 // language codes, for the items that need one
 const LANG = { au8:['ger'], au9:['ger'] };
 // img1/aud1 get no playable derivative; everything else gets one.
@@ -99,7 +179,7 @@ const cands = ITEMS.map(([id,,,,,,len,progs]) => JSON.stringify({
   // resolver does not record as a candidate either
   c: NO_VIDEO.has(id) ? [] :
      Array.from({length:progs??1}, (_,i) => ({
-       n: id+(i?'-ep'+(i+1):'')+'.mp4', f:'h.264 IA', s:1000, h:480, o:0, len:String(len) })),
+       n: (!i && FILES[id]) || id+(i?'-ep'+(i+1):'')+'.mp4', f:'h.264 IA', s:1000, h:480, o:0, len:String(len) })),
 })).join('\n');
 
 fs.writeFileSync(D+'/all_films.json', JSON.stringify(films));
@@ -190,6 +270,86 @@ console.log('the copy with the most programmes wins a collapse');
 ok(ids.has('ds1') !== ids.has('ds2'), 'exactly one Danger Mouse survives');
 has('ds2','the 6-programme copy is the one kept');
 not('ds1','the popular 1-programme copy is dropped');
+
+console.log('the sweep keeps features and whole runs, and nothing else');
+has('sw1',  'a feature');
+not('sw2',  'a short');
+has('sw3',  'a complete series');
+has('sw5',  'one season of it, which the whole run does not replace');
+not('sw6',  'a film in eighteen four-minute chunks is not a series');
+not('sw10', 'one episode, however long');
+has('sw11', 'a complete run of shorts');
+has('sw12', 'a feature in two parts');
+not('sw19', 'one dated broadcast of a show, however long');
+ok(catsOf('sw20').size && !catsOf('sw20').has('completeseries'), 'a film in eight eleven-minute chunks is a film, not a series');
+has('sw21', 'twelve half-hour episodes are a run without saying so');
+ok(catsOf('sw25').size && !catsOf('sw25').has('completeseries'), 'a "(2000 film)" in six files is a film, not a series');
+ok(catsOf('sw26').size && !catsOf('sw26').has('completeseries'), 'a concert split by song is one picture');
+ok(catsOf('sw3').has('completeseries'), 'a whole run -> Complete Series');
+ok(catsOf('sw9').has('television'),     'a feature from a television shelf -> Television');
+ok(!catsOf('sw1').has('completeseries'),'a feature is not Complete Series');
+ok(catsOf('sw1').has('homevideo'),      'the VHS shelves -> VHS & Laserdisc');
+ok(catsOf('sw13').has('anime') && catsOf('sw13').has('animation'), 'the anime shelves -> Anime and Animation');
+
+console.log('the sweep reads the language in a filename');
+has('sw7', '"Rus.Eng" has an English track');
+not('sw8', '"Hindi" alone does not');
+
+console.log('the sweep does not add a second copy of anything');
+ok(ids.has('sw3') !== ids.has('sw4'), 'one Malcolm in the Middle complete series survives');
+has('sw3', '...the better-downloaded one');
+['sw17','sw18'].forEach(i => has(i, i+' kept — two seasons of one title, not a re-upload'));
+['ou1','ou2'].forEach(i => has(i, i+' kept — the years in its bracket differ'));
+['pc1','pc2'].forEach(i => has(i, i+' kept — the years in its title differ'));
+ok(ids.has('bk1') !== ids.has('bk2'), 'one Bucky O\'Hare complete series survives');
+
+console.log('the category audit (Nov 2026)');
+ok(!catsOf('na1').has('television'),  'Television does not restate the television shelves');
+ok(catsOf('na1').has('western'),      '...and the episode keeps its genre');
+ok(catsOf('na2').has('television'),   'a teleplay in the feature vault is still Television');
+ok(!catsOf('na3').has('serial'),      'an "episode" tag on television is not a chapter serial');
+ok(catsOf('na4').has('serial'),       '...a cliffhanger serial on a television shelf still is');
+ok(!catsOf('na5').has('family'),      'a "Family" tag split from "Family Feud" is not Family & Children');
+ok(catsOf('na5').has('gameshows'),    '...and it is still a game show');
+ok(!catsOf('na6').has('short'),       'an hour-long film tagged "short" is not a Short');
+ok(catsOf('na6').has('horror'),       '...and keeps its genre');
+ok(!catsOf('na7').has('propaganda'),  'a 1934 operetta tagged "Third Reich Cinema" is not Propaganda');
+ok(catsOf('na7').has('german'),       '...it is German Cinema');
+ok(catsOf('na8').has('propaganda'),   'a 1941 picture with the same tag is Propaganda & Wartime');
+ok(catsOf('na9').has('propaganda'),   'a 1936 Führer newsreel is Propaganda, whatever the year');
+ok(catsOf('ny1').has('d1950'),        'a year in the title fills a missing one');
+ok(catsOf('ny2').has('d1970') && !catsOf('ny2').has('d2000'), 'a title year beats an upload year');
+ok(catsOf('ny3').has('d2000'),        '...and a recent title year stays recent');
+ok(!catsOf('ny4').has('d2000'),       'a recent year the title does not back is the upload, not the picture');
+ok(catsOf('ny5').has('d2000'),        '...while one the title gives is believed');
+
+console.log('a colourised print survives its original');
+has('cz1', '"(restored, colorized)" is not dropped with its bracket');
+ok(['wz1','wz2','wz3'].some(i => ids.has(i)), '...and the black-and-white White Zombie is still there');
+not('sw14', 'a scene-named copy of a hand-picked film collapses into it');
+has('wizards.-1977.1080p.-blu-ray.x-264-oft', '...and the pick survives');
+not('sw15', 'an undated copy with the same runtime collapses into the dated one');
+has('fritz-the-cat_202512', '...and the pick survives');
+has('sw16', 'an undated copy with another runtime is kept');
+not('sw22', 'a better-downloaded, three-file copy loses to the pick');
+not('sw23', '"Wizards 1977 HD" has a year, and collapses into the pick');
+not('sw24', 'a ☆-decorated director credit does not keep a copy apart');
+has('heavy-traffic_202512', '...and the Heavy Traffic pick survives');
+ok(!catsOf('heavy-traffic_202512').has('family'), '...without the Family heading its collapsed copy carried');
+ok(ids.has('vh1') !== ids.has('vh2'), 'two VHS rips, one bracketed, are one picture');
+ok(ids.has('rw1') !== ids.has('rw2'), 'one upload spelt two ways is one row');
+['gl1','gl2'].forEach(i => has(i, i+' kept — a dub and a sub are two prints'));
+ok(ids.has('ms1') !== ids.has('ms2'), 'a run with a year and the same run without one are one row');
+
+console.log('the requested titles are filed by hand');
+const wz = catsOf('wizards.-1977.1080p.-blu-ray.x-264-oft');
+ok(wz.has('animation') && wz.has('fantasy') && wz.has('d1970'), 'Wizards: Animation, Fantasy, the 1970s (not its 2026 upload)');
+ok(catsOf('fritz-the-cat_202512').has('animation'), 'Fritz the Cat: Animation');
+const fp = catsOf('fantastic-planet__1973');
+ok(fp.has('animation') && fp.has('scifi'), 'Fantastic Planet: Animation and Science Fiction, from a cast-list of tags');
+const tp = catsOf('the-tomorrow-people-1973-79');
+ok(tp.has('completeseries') && tp.has('scifi'), 'The Tomorrow People: Complete Series, Science Fiction');
+ok(!tp.has('comedy') && !tp.has('thriller'), '...and not Comedy or Thriller, from "slapstick" and "espionage"');
 
 console.log('items with no playable video are dropped');
 not('img1','promo still dropped');

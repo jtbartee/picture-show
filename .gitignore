@@ -10,5 +10,6 @@ evil-test.html
 data/all_films.json
 data/all_desc.json
 data/cands.jsonl
+data/sweep_pool.json
 __pycache__/
 *.pyc

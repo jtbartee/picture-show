@@ -16,11 +16,15 @@ television — [Classic TV](https://archive.org/details/classic_tv) with its
 [Saturday Morning Cartoons](https://archive.org/details/saturdaymorningcartoons), the
 complete cartoon runs uploaded by [Oasis Arcade](https://archive.org/details/@oasisarcade),
 and hand-picked complete series (*Reading Rainbow*, *Cowboy Bebop*, *Æon Flux*,
-*Invader Zim*, *Danger Mouse*, *Count Duckula*) — and a handful of hand-picked films
-(*Yellow Submarine*, *The Rocky Horror Picture Show*, Kraftwerk's videos 1975–2000).
+*Invader Zim*, *Danger Mouse*, *Count Duckula*) — a handful of hand-picked films
+(*Yellow Submarine*, *The Rocky Horror Picture Show*, Ralph Bakshi's *Fritz the Cat*,
+*Heavy Traffic* and *Wizards*, Kraftwerk's videos 1975–2000) — and a sweep of the whole
+[Moving Image Archive](https://archive.org/details/movies) for every English-language
+feature and complete series on it: the DVD Tray, the VHS Vault, the laserdisc archive,
+unsorted television, the anime shelves and the film-like part of Community Video.
 Television gets a board section of its own rather than being mixed in among the features.
 
-**50,874 titles · 159,692 programmes · 70 ways in.** One self-contained HTML file.
+**107,118 titles · 1,059,599 programmes · 72 ways in.** One self-contained HTML file.
 
 ![the lobby](docs/lobby.png)
 
@@ -37,7 +41,7 @@ Television gets a board section of its own rather than being mixed in among the 
 - **Every episode, not just the first.** An Archive item is often a whole series in one
   upload — *The Bill* arrives as 2,401 episodes under a single identifier. Pick one from the
   drawer (`e`), with its own runtime, its own resume point and its own link; `n` or the end of
-  an episode rolls on to the next. 3,698 titles here hold more than one programme, 159,692
+  an episode rolls on to the next. 23,264 titles here hold more than one programme, 975,745
   between them.
 - **Random, everywhere.** A *Surprise me* button for the whole vault, a dice on every genre
   (shift-click a genre chip to jump straight into a random film from it), and *Random here*
@@ -64,8 +68,10 @@ Archive item page, which is the authority on that film's rights and provenance.
 The Internet Archive is a non-profit library that pays for all of the bandwidth this page
 uses. If you get any pleasure out of this, [donate to them](https://archive.org/donate).
 
-Films appear here because the Archive distributes them as public domain or under an open
-licence. Rights vary by country and the Archive's item page is always the last word.
+The Feature Films shelf is largely public domain or openly licensed. The hand-picked titles
+and the Moving Image Archive sweep are different: they are what users have uploaded to the
+Archive, and much of it is still in copyright. Picture Show only links to what the Archive
+itself serves; rights vary by country, and the Archive's item page is always the last word.
 Posters, stills and metadata are the Archive's.
 
 ## Running it
@@ -80,12 +86,13 @@ python3 -m http.server 8733
 ## Rebuilding the catalogue
 
 `data/cinema-data.json` is committed, so `node build.mjs` alone rebuilds `index.html` on a
-fresh clone. To regenerate the catalogue itself, the pipeline is four steps in `tools/`
+fresh clone. To regenerate the catalogue itself, the pipeline is five steps in `tools/`
 (see `tools/README.md` for the details):
 
 ```sh
-node tools/scrape.mjs      # page the Archive for every shelf on the programme
-node tools/resolve.mjs     # per item, record every playable encode  (slow: ~2.5h)
+node tools/scrape.mjs      # page the Archive for every shelf, and the sweep's candidates
+python3 tools/sweep.py     # sift the sweep: English, and a film or a series
+node tools/resolve.mjs     # per item, record every playable encode  (slow: hours)
 python3 tools/build.py     # classify, de-duplicate, emit cinema-data.json
 node build.mjs             # inline the data into index.html
 ```
@@ -139,6 +146,7 @@ The catalogue pipeline has its own tests, which need neither a browser nor the n
 
 ```sh
 node tools/dedupetest.mjs # classification and de-duplication rules, on a fixture
+node tools/sweeptest.mjs  # the Moving Image Archive sweep's rules, on a fixture
 node tools/progtest.mjs   # splitting an item's files into programmes
 node tools/duptest.mjs    # a duplicates audit of the catalogue that was actually built
 ```

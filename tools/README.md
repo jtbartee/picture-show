@@ -1,6 +1,6 @@
 # Rebuilding the catalogue
 
-Four steps. Everything lands in `../data/` unless you set `DATA_DIR`.
+Five steps. Everything lands in `../data/` unless you set `DATA_DIR`.
 
 The programme is built from the shelves listed at the top of `scrape.mjs`. Add
 one there and, if it deserves its own heading, give it one in `taxonomy.py`:
@@ -16,7 +16,8 @@ one there and, if it deserves its own heading, give it one in `taxonomy.py`:
 | `gameshows` | 14,345 | the Game Shows Archive |
 | `@oasisarcade` | 14 | an account's uploads: complete runs of 80s/90s cartoons |
 | `handpicked` | 6 | complete series no shelf above carries |
-| `handpicked_films` | 3 | features and one-offs no shelf above carries, filed by hand |
+| `handpicked_films` | 6 | features and one-offs no shelf above carries, filed by hand |
+| `movies` | 57,306 | the sweep of the whole Moving Image Archive: English-language features and whole runs |
 
 The shelves overlap heavily — every `SciFi_Horror` item is also in
 `feature_films`, and `classic_tv_1980s` is a wing of `classic_tv` — so
@@ -44,15 +45,55 @@ genres, so `build.py` splits it (see the comment there).
 
 | step | command | time | writes |
 |---|---|---|---|
-| 1 | `node tools/scrape.mjs` | ~2 min | `all_films.json`, `all_desc.json` |
-| 2 | `node tools/resolve.mjs` | **~2.5 h** | `cands.jsonl` |
-| 3 | `python3 tools/build.py` | ~10 s | `cinema-data.json` |
-| 4 | `node build.mjs` | ~1 s | `index.html` |
+| 1 | `node tools/scrape.mjs` | ~6 min | `all_films.json`, `all_desc.json`, `sweep_pool.json` |
+| 2 | `python3 tools/sweep.py` | ~1 min | appends to `all_films.json`, `all_desc.json` |
+| 3 | `node tools/resolve.mjs` | **many hours** | `cands.jsonl` |
+| 4 | `python3 tools/build.py` | ~30 s | `cinema-data.json` |
+| 5 | `node build.mjs` | ~2 s | `index.html` |
 
-**Step 2 is the slow one.** It asks `archive.org/metadata/<id>` for every one of the ~41,700
-items to find out which encodes exist. It runs 20 requests at a time and the Archive paces
-it to roughly 4–5 items a second. It appends to `cands.jsonl` and skips anything already in
-there, so it is safe to kill and restart.
+Step 2 must follow step 1 every time: `scrape.mjs` rewrites `all_films.json` from
+scratch, and `sweep.py` is what adds the swept items back. It skips anything already
+there, so running it twice is harmless.
+
+**Step 3 is the slow one.** It asks `archive.org/metadata/<id>` for every item to find out
+which encodes exist. It runs 20 requests at a time and the Archive paces it to a few items
+a second — the first sweep, ~92,000 items, took about four hours. It appends to `cands.jsonl` and
+skips anything already in there, so it is safe to kill and restart, and a rebuild after
+the first one only fetches what is new.
+
+## The sweep of the Moving Image Archive
+
+[`archive.org/details/movies`](https://archive.org/details/movies) is the root of the
+Archive's whole Moving Image collection: 17.5 million items in 8,775 sub-collections, most
+of them off-air news, livestreams, lectures, sermons, game replays, commercials and home
+video. It cannot be scraped as a shelf. Instead it is sifted in three passes, each cheaper
+than the one after it:
+
+1. **Search** (`SWEEPS` in `scrape.mjs`). The film and television sub-collections not
+   already on the programme — `dvdtray`, `vhsmovies`, `vhstvshows`, `vhskids`,
+   `televisionmovies`, `laserdiscs`, `television`, `television_inbox`,
+   `childrenstelevision`, the anime shelves, `animationandcartoons`, the rest of the VHS
+   Vault — plus the part of Community Video (`opensource_movies`) whose tags look like film.
+   Only items in English or not saying, and above a size floor no feature or whole run
+   falls under. About 220,000 candidates.
+2. **Metadata** (`sweep.py`). Decides, without fetching anything, which candidates are
+   worth resolving. It drops the sub-collections that are never a programme (news captures,
+   commercials, VHS openings, sport, instructional tapes, foreign-language networks, adult);
+   titles that are never one (newscasts, council meetings, let's-plays, off-air dumps) and
+   single instalments (`S01E03`, `Part 4`) unless the title says the item is the whole run;
+   and anything not in English. English means the language field says so, or the item
+   names an English dub or English subtitles, or — with no language field — its description
+   reads as English. Community Video gets no benefit of the doubt: it must say it is English.
+3. **Files** (`build.py`). What only the resolved encodes know. A swept item stays if it is
+   a **feature** — forty minutes or more, the line the Academy and the BFI both draw, in up
+   to three files — or a **whole run**: a title that says complete, season, series or
+   collection with an hour or more in it, or six or more episodes averaging ten minutes. A
+   language named in the filename (`.Hindi.`, `[Latino]`) drops it unless English is named
+   beside it.
+
+Every list in `sweep.py` was built by sampling what the previous version let through, and
+its false positives are pinned in `sweeptest.mjs` — a bare "news", "wedding" or "how to"
+was dropping *Broadcast News*, *My Big Fat Greek Wedding* and *How to Marry a Millionaire*.
 
 It records *every* playable encode per item rather than picking one, so re-ranking later
 (step 3) costs nothing. That matters — the first version of this pipeline stored only its
@@ -88,7 +129,17 @@ chosen file and the choice turned out to be wrong, which meant re-fetching every
   The copy holding the **most programmes** wins before the most-downloaded one does: two
   uploads called *Danger Mouse* can be one episode and the whole 90-episode run, and
   keeping the popular single would hide the other 89. A false split only shows a duplicate;
-  a false merge hides a picture.
+  a false merge hides a picture. Scene names (`Wizards.1977.1080p.BluRay.x264-OFT`) are cut
+  at the year before keying. Two further passes follow the title key:
+  - **The same whole run, uploaded twice.** "Malcolm in the Middle (The Complete Series)"
+    and "Malcolm in the Middle Complete Series" are keyed on their title with the
+    whole-run words gone, and collapse when they hold within 10% of the same number of
+    programmes, share a year, open on the same episode to within ten seconds, and name no
+    different years — so a season survives beside the whole series, and two seasons
+    uploaded under one bare title both survive.
+  - **A dated and an undated copy of one feature.** The year is in the key, so "Fritz the
+    Cat" (1972) and an undated "Fritz the Cat" never met. They collapse when their runtimes
+    agree to 3% and exactly one dated picture carries the name.
 - **Keeps episodes apart.** Stripping the bracket is right for a feature and wrong for
   television, where the bracket *is* the identity: `(Episode 10)`, `(серия 2)`,
   `(April 21, 1984)`. A bracket is only dropped if it holds nothing that distinguishes one
@@ -135,12 +186,49 @@ Every heading was checked against what actually lands in it, and these were wron
 
 Each is pinned by a case in `dedupetest.mjs`.
 
+### The second audit (Nov 2026)
+
+Done alongside the sweep, against the built catalogue. These were wrong, and are fixed in
+`audit()` and `strip_asides()` in `build.py`:
+
+- **Colourised prints collapsed into their originals.** "Devil Girl from Mars (restored,
+  colorized)" lost its bracket — and with it the word that made it a different print — so
+  159 colourised prints vanished into black-and-white copies, which then inherited the
+  *Colorized* heading they had no right to. A bracketed `colorized` or `dubbed` now
+  survives the bracket.
+- **Television restated the television shelves.** Meant for telefilms and plays found
+  elsewhere, it held 5,799 Classic TV and game-show episodes. On a television shelf the
+  heading is no longer applied; elsewhere it still is.
+- **Serials & Chapters held television.** An `episode` tag filed *Hometime* and *Are You
+  Being Served?* as chapter plays. On a television shelf a serial must say cliffhanger,
+  chapter or matinee serial.
+- **Family & Children held Family Feud**, from a `Family` tag the uploader split off the
+  title. On a television shelf a one-word tag that is only a word of the title counts for
+  nothing unless another tag says the same.
+- **Short Films held features.** *Dementia* runs an hour and is tagged `short`; forty
+  minutes or more is never a short.
+- **Propaganda & Wartime held every German picture of 1933–45**, operettas and fairy tales
+  included, because each carries `Third Reich Cinema`. That tag now files there only in the
+  war years or beside a tag that says propaganda; otherwise the picture is German Cinema.
+- **Years came from the upload.** "1972. Around the World in 80 Days" carried 2023, and
+  thousands of features had no year though their titles gave one. A year in the title fills
+  a missing one and beats a recent one that is later than it — 1,100 titles left The Vault.
+- **The Jesus Film survivor was the Tamil dub**; it is now the English one.
+
+Two headings are new: **Anime** (the Archive's anime shelves and `anime` tags) and **VHS &
+Laserdisc** under *Form & era* (the VHS Vault's shelves, the laserdisc archive, `vhs` tags).
+The five titles asked for by name — *Fritz the Cat*, *Heavy Traffic*, *Wizards*, *Fantastic
+Planet*, *The Tomorrow People* — are filed by hand in `ITEM_KEYS`.
+
 ## Testing the pipeline
 
 `node tools/dedupetest.mjs` runs `build.py` against a hand-written catalogue in a temp
 `DATA_DIR` and checks the classification and dedupe rules — episode brackets surviving,
-re-uploads still collapsing, the `SciFi_Horror` split, non-video items dropped. No network,
-about a second.
+re-uploads still collapsing, the `SciFi_Horror` split, non-video items dropped, the sweep's
+feature-or-whole-run rule and both audits. No network, about a second.
+
+`node tools/sweeptest.mjs` does the same for `sweep.py`: the language rules, the
+blocklists and their known false positives, single instalments against whole runs.
 
 `node tools/duptest.mjs` audits the **built** catalogue rather than a fixture: that no
 identifier appears twice, that every shelf above actually reaches the lobby, that the

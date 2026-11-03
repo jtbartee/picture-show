@@ -32,13 +32,17 @@ const ok = (c, m, extra='') => {
    the thing under test would make the assertion circular. */
 const SHELVES = ['feature_films','SciFi_Horror','saturdaymorningcartoons',
                  'classic_tv','classic_tv_1980s','classic_tv_1990s','gameshows',
-                 '@oasisarcade','handpicked','handpicked_films'];
+                 '@oasisarcade','handpicked','handpicked_films','movies'];
 const PICKS = ['13-dm-the-duel-episode-1-5_202608',
                'count-duckula-1x-07-dr-von-goosewings-invisible-ray-upscaled_202608',
                'ReadingRainbowTVSeries','db-bebop-of-the-cowboys-1080p',
                'hnbt_aeonflux','hnbt_invaderzim',
                '10kraftwerkpopifokusswedishtvspecial01042002',
-               'the-beatles-yellow-submarine','ROCKY-HORROR'];
+               'the-beatles-yellow-submarine','ROCKY-HORROR',
+               'fritz-the-cat_202512','heavy-traffic_202512',
+               'wizards.-1977.1080p.-blu-ray.x-264-oft',
+               // asked for by name, and already on a shelf before they were
+               'fantastic-planet__1973','the-tomorrow-people-1973-79'];
 
 // Crude on purpose, and shared by the checks below: lowercase, drop years, drop
 // everything that is not a letter or a digit. It is deliberately NOT build.py's

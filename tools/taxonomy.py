@@ -41,6 +41,9 @@ GENRES = [
   ["documentary","documental","dokumentar","=doc","=newsreel","=newsreels","=actuality","=travelogue","=educational","=instructional"],[]),
  ("animation","Animation","#9b59b6","genre",
   ["animation","=animated","=cartoon","=cartoons","=stop motion","=stop-motion","=anime","=çizgi film"],[]),
+ # Anime is animation too; the Archive's anime shelves file into both.
+ ("anime","Anime","#e5547a","genre",
+  ["=anime","anime series","=japanimation","=ova","=fansub","=fansubs"],[]),
  ("family","Family & Children","#45b39d","genre",
   ["=family","=children","=childrens","=children's","=kids","=juvenile","=family film"],[]),
  ("history","Historical","#8d6e63","genre",
@@ -67,6 +70,11 @@ GENRES = [
   ["=colorized","=colourized","=colorised","=hand-colored","=hand-coloured"],[]),
  ("restored","Restored","#74b9ff","era",
   ["=restored","=restoration","=remastered","=4k restoration","=hd restoration"],[]),
+ # Tape and disc transfers: the VHS Vault's shelves, and the laserdisc archive.
+ # A form like Colorized, not a genre -- the picture is whatever it is, seen
+ # the way it was sold for the living room.
+ ("homevideo","VHS & Laserdisc","#8e7cc3","era",
+  ["=vhs","=vhs rip","=vhsrip","=vhs tape","=vhs capture","=laserdisc","=laser disc"],[]),
 
  # ---- world cinema
  ("argentine","Argentine Cinema","#6cace4","world",
@@ -115,7 +123,8 @@ GENRES = [
  # should be labelled for what it is rather than folded quietly into a national
  # cinema -- nobody browsing "German Cinema" for Murnau should land in it unawares.
  ("propaganda","Propaganda & Wartime","#6e6246","genre",
-  ["third reich cinema","=propaganda","=propagandafilm","=nazi","=nsdap","=drittes reich","=third reich",
+  # "third reich cinema" is decided in build.py (see audit()), not here
+  ["=propaganda","=propagandafilm","=nazi","=nsdap","=drittes reich","=third reich",
    "=führer","=fuehrer","=hitler","=wehrmacht","=waffen ss","=deutsche soldaten","=soldatenlied",
    "=soldatenlieder","=marschmusik","=reichsparteitag","=militärparade","=hj","=hitlerjugend",
    "=agitprop","=war effort","=home front","=why we fight","=office of war information",
@@ -164,7 +173,38 @@ COLLECTION_KEYS = {
  # Hand-picked features: no shelf-wide heading at all. ITEM_KEYS below files
  # each one individually.
  "handpicked_films":        set(),
+ # ---- The Moving Image Archive sweep (tools/sweep.py). `movies` is the
+ # synthetic shelf every swept item carries; it files nothing by itself, since
+ # build.py decides from the files whether an item is a feature or a whole run.
+ # The real sub-collections it came from are kept alongside, and these say
+ # what they reliably mean.
+ "movies":                  set(),
+ "anime":                   {"anime", "animation"},
+ "anime_miscellaneous":     {"anime", "animation"},
+ "anime-series":            {"anime", "animation"},
+ "animepacks":              {"anime", "animation"},
+ "animecollection_pokemon": {"anime", "animation", "family"},
+ "animecollection_onepiece":{"anime", "animation"},
+ "animefansubs":            {"anime", "animation"},
+ "fansubmarine":            {"anime", "animation"},
+ "animationandcartoons":    {"animation"},
+ "animation_unsorted":      {"animation"},
+ "childrenstelevision":     {"family"},
+ "vhskids":                 {"family", "homevideo"},
+ "televisionmovies":        {"television"},
+ "vhsvault":                {"homevideo"},
+ "vhsmovies":               {"homevideo"},
+ "vhstvshows":              {"homevideo"},
+ "louisbbcvhs":             {"homevideo", "british"},
+ "georgesretrochannel":     {"homevideo"},
+ "laserdiscs":              {"homevideo"},
+ "vhsconcerts_music":       {"homevideo", "musical"},
 }
+
+# Sweep shelves that are television. A feature-length item found on one is a
+# telefilm or a special, and build.py files it under Television; a whole run
+# from anywhere is Complete Series.
+SERIES_SHELVES = {"television", "television_inbox", "childrenstelevision", "vhstvshows"}
 
 # ---- Tag matches that must NOT file under a key. A tag containing one of these
 # phrases is skipped for that key's word-start patterns (exact '=' patterns are
@@ -181,16 +221,29 @@ EXCLUDE = {
 # ---- Hand-picked items, filed by hand. These REPLACE whatever the tag
 # classifier would say: their tags are either missing (Yellow Submarine has
 # none) or misleading (Cowboy Bebop is tagged "cowboy", which made it a Western).
-# `year` fills in where the item's own metadata has none or the wrong one.
+# `year` and `creator` fill in where the item's own metadata has none or the wrong one.
 ITEM_KEYS = {
  "ReadingRainbowTVSeries":        {"keys": {"completeseries", "family"}},
- "db-bebop-of-the-cowboys-1080p": {"keys": {"completeseries", "animation", "scifi", "action", "japanese"}},
+ "db-bebop-of-the-cowboys-1080p": {"keys": {"completeseries", "animation", "anime", "scifi", "action", "japanese"}},
  "hnbt_aeonflux":                 {"keys": {"completeseries", "animation", "scifi", "experimental"}},
  "hnbt_invaderzim":               {"keys": {"completeseries", "animation", "scifi", "comedy"}},
  "10kraftwerkpopifokusswedishtvspecial01042002":
                                   {"keys": {"musical"}},
  "the-beatles-yellow-submarine":  {"keys": {"musical", "animation", "fantasy", "family", "british"}, "year": 1968},
  "ROCKY-HORROR":                  {"keys": {"musical", "comedy", "horror", "scifi", "british"}, "year": 1975},
+ # Ralph Bakshi's adult animation. The Wizards upload is dated by its upload,
+ # 2026, so its year is set here; the other two carry release dates already.
+ "fritz-the-cat_202512":          {"keys": {"animation", "comedy"}, "year": 1972},
+ "heavy-traffic_202512":          {"keys": {"animation", "comedy", "drama"}, "year": 1973},
+ "wizards.-1977.1080p.-blu-ray.x-264-oft":
+                                  {"keys": {"animation", "fantasy", "scifi"}, "year": 1977,
+                                   "creator": "Ralph Bakshi"},   # the upload credits Mark Wahlberg
+ # Already on the programme from feature_films and classic_tv, where their tags
+ # are cast lists (Fantastic Planet: no genre at all) or misleading (The
+ # Tomorrow People's "slapstick" and "espionage" made it a Comedy and a
+ # Thriller). The Laloux is French-Czech, here in its English dub.
+ "fantastic-planet__1973":        {"keys": {"animation", "scifi", "experimental", "french"}},
+ "the-tomorrow-people-1973-79":   {"keys": {"classictv", "completeseries", "scifi", "family"}},
 }
 
 # Items dropped outright: adult-only animation that rides in on a broad shelf.

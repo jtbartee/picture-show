@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import json, re, collections, sys, os, html
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from taxonomy import GENRES, DECADES, LANG_MAP, COLLECTION_KEYS, EXCLUDE, ITEM_KEYS, DROP_TAGS
+from taxonomy import GENRES, DECADES, LANG_MAP, COLLECTION_KEYS, EXCLUDE, ITEM_KEYS, DROP_TAGS, SERIES_SHELVES
+from sweep import COMPLETE, INSTALMENT, EN_MARK
 D=os.environ.get('DATA_DIR', os.path.join(os.path.dirname(os.path.abspath(__file__)),'..','data'))+os.sep
 
 films=json.load(open(D+'all_films.json'))
@@ -157,6 +158,9 @@ SCIFI_HINT=re.compile(r'\b(sci-?fi|science[ -]fiction|space(craft|ship)?|rocket|
 # redundant upload.
 TV_SHELVES={'saturdaymorningcartoons','classic_tv','classic_tv_1980s','classic_tv_1990s',
             'gameshows','@oasisarcade','handpicked'}
+# Items asked for by name. When one collapses with another upload of the same
+# picture it is the survivor, whatever the other copy's numbers.
+PICK_SHELVES={'handpicked','handpicked_films'}
 
 def collections_of(f):
     c=f.get('collection') or []
@@ -172,13 +176,17 @@ def collection_keys(f, keys, blob):
         out.add('scifi' if SCIFI_HINT.search(blob) else 'horror')
     return out
 
+def tag_keys(t):
+    """The genre keys one normalised tag files under."""
+    keys=set(exact.get(t,()))
+    for pat,k in subs:
+        if pat.search(t) and not any(x in t for x in EXCLUDE.get(k,())): keys.add(k)
+    return keys
+
 def classify(f, dtext):
     tv=bool(collections_of(f) & TV_SHELVES)
     keys=set()
-    for t in tags_of(f):
-        if t in exact: keys|=exact[t]
-        for pat,k in subs:
-            if pat.search(t) and not any(x in t for x in EXCLUDE.get(k,())): keys.add(k)
+    for t in tags_of(f): keys|=tag_keys(t)
     langs=f.get('language') or []
     if isinstance(langs,str): langs=[langs]
     # A language code files a *film* under its national cinema. On a television
@@ -198,16 +206,39 @@ def classify(f, dtext):
     return keys
 
 # ---------- year
-def get_year(f):
+# A year the title itself states: bracketed, leading or trailing ("Behind the
+# High Wall (1956)", "1972. Around the World in 80 Days", "The Treasure Of The
+# Sierra Madre 1948"), or the year in a scene name ("Isolated.2006.dvdrip").
+TITLE_YEAR=re.compile(r'[\(\[]\s*((?:18[89]|19|20)\d\d)\s*[\)\]]|^((?:19|20)\d\d)[.\s:-]|'
+                      r'\b((?:19|20)\d\d)(?:\s+(?:hd|sd|4k|uhd|vhs|dvd|remastered|restored|colou?ri[sz]ed|full\s+movie))*\s*$|[\s._]((?:19|20)\d\d)[\s._]+(?:\d{3,4}p|dvd|bd|br|web|hdtv|xvid)', re.I)
+
+def title_year(title):
+    m=TITLE_YEAR.search(title)
+    return int(next(g for g in m.groups() if g)) if m else None
+
+THIS_YEAR=__import__('datetime').date.today().year
+
+def get_year(f, title=''):
     y=f.get('year')
     if isinstance(y,list): y=y[0] if y else None
     try: y=int(y)
     except: y=None
-    if y and 1878<=y<=2030: return y
-    # fall back to `date`
-    m=re.search(r'\b(18[7-9]\d|19\d\d|20[0-2]\d)\b', S(f.get('date')))
-    if m: return int(m.group(1))
-    return None
+    if not (y and 1878<=y<=2030):
+        # fall back to `date`
+        m=re.search(r'\b(18[7-9]\d|19\d\d|20[0-2]\d)\b', S(f.get('date')))
+        y=int(m.group(1)) if m else None
+    # The metadata is often the upload, not the picture: "1972. Around the
+    # World in 80 Days" carries 2023, and Wizards (1977) carries 2026. When the
+    # title names an earlier year and the metadata's is a recent one, the title
+    # is the one to believe. Where the metadata has nothing, it is all there is.
+    ty=title_year(title)
+    if ty and ty>THIS_YEAR: ty=None                # "Cyberpunk 2077" is not a date
+    if ty and (not y or (y>=2000 and y>ty+1)): return ty
+    # A recent year with nothing in the title to back it is the upload: five
+    # thousand swept items said 2023-2026, Naked Came the Stranger (1975) among
+    # them. A picture that new nearly always names its year in its title.
+    if y and y>=THIS_YEAR-3 and not ty: return None
+    return y
 
 # ---------- runtime seconds
 def get_secs(f, r, v=None):
@@ -226,6 +257,89 @@ def get_secs(f, r, v=None):
                 if 30<=v<=60000: return int(v)
             except: pass
     return None
+
+# ---------- the Moving Image Archive sweep (see tools/sweep.py)
+# sweep.py let an item through on its search metadata: in English, and not a
+# newscast, a commercial or a livestream. This is the half of the rule that
+# needs the files. An item from the sweep stays only if it is a feature -- forty
+# minutes or more, the line the Academy and the BFI both draw -- or a whole run
+# of a series. A lone episode, a cartoon short or a music video is neither.
+SWEEP='movies'
+FEATURE=40*60
+
+def prog_secs(p):
+    for c in p:
+        s=get_secs({},None,c)
+        if s: return s
+    return 0
+
+# A language named in a release-style filename: "Sexy.Durga.2017.Malayalam.1080p",
+# "Akira (1988) [Latino].mp4". The search metadata never saw the filenames.
+FILE_LANG=re.compile(r'(?:^|[\s._\[\(-])(?:hindi|tamil|telugu|malayalam|kannada|bengali|punjabi|latino|'
+                     r'castellano|espanol|español|spanish|french|vostfr|truefrench|german|deutsch|italian|ita|'
+                     r'russian|rus|korean|kor|chinese|mandarin|cantonese|turkish|legendado|dublado|'
+                     r'portuguese|thai|vietsub|indonesian|arabic)(?=$|[\s._\]\)-])', re.I)
+# ...unless English is named beside it: "Ted.2012.BDRip.1080p.Rus.Eng.mp4"
+FILE_EN=re.compile(r'(?:^|[\s._\[\(-])(?:eng|english)(?=$|[\s._\]\)-])', re.I)
+
+ONE_PICTURE=re.compile(r'\b(?:film|movie|live\s+(?:in|at)|in\s+concert|concert)\b', re.I)
+
+def sweep_form(title, progs):
+    """'film', 'series', or None when the item is neither."""
+    lens=[prog_secs(p) for p in progs]
+    n=len(progs); total=sum(lens)
+    whole=bool(COMPLETE.search(title))
+    if INSTALMENT.search(title) and not whole: return None
+    # A feature with its extras: the largest file is feature length and holds
+    # most of the item. "The Mutilation Man (1998) [+Extras]" is eight files.
+    if not whole and max(lens)>=FEATURE and max(lens)>=total/2: return 'film'
+    # A concert split by song, or a title that says it is one film: however
+    # many files it arrived in, it is one picture. "Ginger Snaps (2000 film)".
+    if not whole and total>=FEATURE and ONE_PICTURE.search(title): return 'film'
+    # Six instalments make a run on their own; fewer need the title to say so.
+    # Without the title's word for it they must also run like episodes --
+    # fifteen minutes or more on average -- or "The Jungle Book (1991 VHS)" in
+    # eighteen chunks is a series. A run that says it is one may be shorts.
+    if n>=2 and total>=3600 and (total/n>=240 if whole else (n>=6 and total/n>=900)): return 'series'
+    # a feature may arrive in two or three files -- in parts, or with a trailer
+    if n<=3 and total>=FEATURE and max(lens)>=20*60: return 'film'
+    return None
+
+# ---------- the category audit (Nov 2026)
+# Headings checked against what actually landed in them. Each rule here is a
+# misfiling found in the built catalogue, and each is pinned in dedupetest.mjs.
+CHAPTER_PLAY=re.compile(r'cliffhanger|chapter|matinee serial|movie serial|film serial|republic serial', re.I)
+PROPAGANDA_TAG=re.compile(r'propaganda|\bnazi|nsdap|hitler|f(?:ü|ue)hrer|wehrmacht|waffen ss|reichsparteitag|'
+                          r'hitlerjugend|wochenschau|newsreel', re.I)
+
+def audit(f, keys, title, year, secs):
+    tags=tags_of(f)
+    tv=bool(collections_of(f) & TV_SHELVES)
+    if tv:
+        # "Television" is for telefilms and plays found off the television
+        # shelves. On them it only restated Classic TV, and it held 5,799 rows.
+        keys.discard('television')
+        # An "episode" tag made every one of them a chapter serial: Hometime,
+        # Eye on L.A., Are You Being Served? A serial on television has to say so.
+        if 'serial' in keys and not any(CHAPTER_PLAY.search(t) for t in tags): keys.discard('serial')
+        # Uploaders split a title into tags -- "Family", "Feud", "game", "show"
+        # -- and "Family" then filed Family Feud under Family & Children. On a
+        # television shelf a one-word tag that is only a word of the title says
+        # nothing about the programme.
+        words=set(re.findall(r'[a-z]+', title.lower()))
+        echo=[t for t in tags if ' ' not in t and t in words]
+        if echo:
+            vouched=set().union(*(tag_keys(t) for t in tags if t not in echo))
+            keys-=set().union(*(tag_keys(t) for t in echo))-vouched
+    # A short film is a short. "Dementia" runs an hour and is tagged "short".
+    if secs and secs>=FEATURE: keys.discard('short')
+    # "Third Reich Cinema" is on every German picture of 1933-45: operettas,
+    # fairy tales, light comedies. It is primary material and it is labelled,
+    # but a 1934 comedy is neither propaganda nor wartime. It files under
+    # Propaganda & Wartime in the war years, or with a tag that says propaganda.
+    if any('third reich cinema' in t for t in tags):
+        if (year and 1939<=year<=1945) or any(PROPAGANDA_TAG.search(t) for t in tags): keys.add('propaganda')
+    return keys
 
 # ---------- stage 1: filter to playable, build records
 # NB: `mediatype` is NOT used to decide what is a film. The television shelves do
@@ -256,29 +370,47 @@ for f in films:
     if SPAM_TITLE.match(title): stats['spam']+=1; continue
     if DROP_TAGS & set(tags_of(f)): stats['adult']+=1; continue
     dtext=clean_text(desc.get(fid))
+    form=None
+    if SWEEP in collections_of(f):
+        form=sweep_form(title, progs)
+        if not form: stats['sweep_not_feature_or_run']+=1; continue
+        fname=vids[0]['n']
+        if FILE_LANG.search(fname) and not (EN_MARK.search(fname+' '+title) or FILE_EN.search(fname)):
+            stats['sweep_foreign_file']+=1; continue
+        stats['sweep_'+form]+=1
     # tags, then language, then (only if nothing matched) prose -- and finally
     # the shelf the item sits on, which applies regardless of what matched.
     keys=classify(f,dtext)
     keys|=collection_keys(f, keys, title+' '+' '.join(tags_of(f))+' '+dtext[:1500])
-    # hand-picked items are filed by hand, replacing all of the above
+    # The sweep's own shelf heading depends on what the files turned out to be:
+    # a whole run is a Complete Series wherever it came from, and a feature
+    # found on a television shelf is a telefilm or a special.
+    if form=='series': keys.add('completeseries')
+    elif form=='film' and collections_of(f) & SERIES_SHELVES: keys.add('television')
     hand=ITEM_KEYS.get(fid,{})
+    year=hand.get('year') or get_year(f, title)
+    keys=audit(f, keys, title, year, get_secs(f,r,vids[0]))
+    # hand-picked items are filed by hand, replacing all of the above
     if 'keys' in hand: keys=set(hand['keys'])
     recs.append({
-        'id':fid,'title':title,'year':hand.get('year') or get_year(f),
+        'id':fid,'title':title,'year':year,
         'v':vids[0]['n'],'alts':[c['n'] for c in vids[1:3]],
         'eps':len(progs) if len(progs)>1 else 0,
         'dl':int(f.get('downloads') or 0),'secs':get_secs(f,r,vids[0]),
         'h':vids[0].get('h') or 0,'sz':vids[0].get('s') or 0,
-        'creator':clean_text(f.get('creator'))[:80],
+        'creator':hand.get('creator') or clean_text(f.get('creator'))[:80],
         'keys':keys,
-        'tv':bool(collections_of(f) & TV_SHELVES),
+        'tv':form=='series' or (form is None and bool(collections_of(f) & TV_SHELVES)),
+        'pick':bool(collections_of(f) & PICK_SHELVES),
+        'hand':'keys' in hand,
     })
 print('stage1:',dict(stats),'-> kept',len(recs))
 
 # ---------- stage 2: collapse the Jesus Film dub dump
 jesus=[x for x in recs if re.match(r'^jesus film\b',x['title'],re.I) or 'jesus film' in x['title'].lower()]
 if jesus:
-    jesus.sort(key=lambda x:-x['dl'])
+    # The English print, where there is one: the most-downloaded was the Tamil.
+    jesus.sort(key=lambda x:(not re.search(r'\benglish language\b',x['title'],re.I), -x['dl']))
     keep=jesus[0]['id']
     drop={x['id'] for x in jesus if x['id']!=keep}
     recs=[x for x in recs if x['id'] not in drop]
@@ -292,7 +424,16 @@ if jesus:
 NOISE=re.compile(r'\b(full\s*movie|full\s*film|complete\s*movie|free\s*movie|hd\s*version|hd|'
                  r'720p|1080p|480p|576p|4k|widescreen|remastered|restored|'
                  r'public\s*domain|classic\s*movie|feature\s*film|english\s*subtitles|'
-                 r'subtitled|sub|w/?\s*subs)\b', re.I)
+                 r'subtitled|sub|w/?\s*subs|'
+                 # release-group vocabulary, which the sweep's uploads are full of
+                 r'blu-?ray|brrip|bdrip|dvdrip|dvd-?r|dvd|webrip|web-?dl|hdtv|hdrip|remux|x\.?26[45]|'
+                 r'h\.?26[45]|hevc|xvid|divx|aac\d?|ac3|dts|10bit|8bit|yify|yts|rarbg|mkv|mp4|avi|'
+                 # the source: "(1999 VHS)" lost its bracket and "1999 VHS" did not
+                 r'vhs|laserdisc|full\s*tape|full\s*vhs)\b', re.I)
+# "Wizards.1977.1080p.BluRay.x264-OFT": a scene name, dotted for spaces. The
+# year is the end of the title and everything after it is the release.
+SCENE=re.compile(r'^(.+?)[\s._\[(]+(?:19|20)\d{2}[\s._\])]+.*\b(?:\d{3,4}p|blu-?ray|brrip|bdrip|dvdrip|'
+                 r'webrip|web-?dl|hdtv|hdrip|x26[45]|xvid|hevc)\b.*$', re.I)
 # Episodic television breaks the "drop bracketed asides" rule outright. On a
 # feature the bracket is noise -- "White Zombie (1932)", "Nosferatu [HD]" -- but
 # on a television item it is the whole identity: "Around the World in 80 Days
@@ -309,12 +450,26 @@ EPISODE_MARK=re.compile(
   r'aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b'
   r'|\b\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}\b', re.I)
 
+# A bracket can also say the print is a different one: "Devil Girl from Mars
+# (restored, colorized)", "Bird of Paradise [Colorized, 4K]", "Girls' Last Tour (English dub)"
+# beside its "(english sub)". Those words survive
+# the bracket being dropped -- they were being stripped with it, and every
+# colourised print collapsed into its black-and-white original.
+PRINT_MARK=re.compile(r'\b(?:colou?ri[sz]ed|dub(?:bed)?)\b', re.I)
+
 def strip_asides(t):
-    return re.sub(r'[\(\[\{](.*?)[\)\]\}]',
-                  lambda m: ' ' if not EPISODE_MARK.search(m.group(1)) else ' '+m.group(1)+' ', t)
+    def aside(m):
+        inner=m.group(1)
+        if EPISODE_MARK.search(inner): return ' '+inner+' '
+        return ' '+' '.join(w.lower() for w in PRINT_MARK.findall(inner))+' '
+    return re.sub(r'[\(\[\{](.*?)[\)\]\}]', aside, t)
 
 def base_title(x):
     t=x['title']
+    if t.count('.')>=3 and t.count(' ')<=1: t=re.sub(r'[._]',' ',t)
+    m=SCENE.match(t)
+    if m: t=m.group(1)
+    t=re.sub(r'☆[^☆]*☆',' ',t)                    # "Heavy Traffic ☆ Ralph Bakshi ☆ 1973"
     t=strip_asides(t)                              # drop bracketed asides
     t=re.sub(r'\b(18|19|20)\d{2}\b',' ',t)          # drop stray years
     t=NOISE.sub(' ',t)
@@ -341,9 +496,14 @@ def collapse(groups):
         # 17-episode run, and keeping the popular single would hide the other 16 --
         # the survivor should be the copy that contains the others, not the copy
         # with the best numbers. `eps` is 0 on a single-programme item.
-        group.sort(key=lambda x:(-(x['eps'] or 1),-x['dl'],-x['sz']))
+        # A hand-picked item is the one asked for by name, so it wins outright.
+        group.sort(key=lambda x:(not x['pick'],-(x['eps'] or 1),-x['dl'],-x['sz']))
         surv=group[0]
-        for o in group[1:]: surv['keys']|=o['keys']
+        # ...unless it was filed by hand, which replaces what tags say -- the
+        # other copies' tags are exactly what ITEM_KEYS overrides. Heavy Traffic
+        # was inheriting Family & Children from somebody's upload of it.
+        if not surv['hand']:
+            for o in group[1:]: surv['keys']|=o['keys']
         out.append(surv); lost+=len(group)-1
     return out,lost
 
@@ -370,6 +530,99 @@ recs,crossed=collapse(bysig.values())
 recs+=loners
 print('cross-shelf: dropped %d copies of a picture already on the programme -> %d films'
       % (crossed,len(recs)))
+
+# ---------- stage 3c: the same whole run, uploaded twice
+# "Malcolm in the Middle (The Complete Series) [2000 - 2006]" and "Malcolm in
+# the Middle Complete Series" are one run, but the words that say "whole run"
+# keep their keys apart, and the television key carries the first episode's
+# length, which two encodes rarely agree on to ten seconds. So a run is keyed on
+# its title with those words gone, and two runs collapse only when they hold
+# much the same number of programmes: a season and the whole series must both
+# survive, because the smaller is not a re-upload of the larger. They must also
+# share a year and open on the same episode -- two encodes of it agree to well
+# within half a minute -- or two seasons uploaded under one bare title, each
+# thirteen episodes long, would collapse into one.
+RUN_WORDS=re.compile(r'\b(?:the\s+)?(?:complete|full|entire|whole)(?:\s+(?:tv|television))?\s*'
+                     r'(?:series|collection|run|show)?\b|\ball\s+episodes\b|\bbox\s*set\b|'
+                     r'\btv\s+series\b|\bseries\b(?!\s*\d)|\bepisodes\b', re.I)
+def run_key(x):
+    t=strip_asides(RUN_WORDS.sub(' ',x['title']))
+    t=re.sub(r'\b(18|19|20)\d{2}\b',' ',t)
+    return re.sub(r'[^a-z0-9]','',NOISE.sub(' ',t).lower())
+# Years are compared apart from the key. On a run they are part of the identity
+# -- "Presidential Campaign Ads 1964" and "... 1968" are two items, and so are
+# "OU M203 (1980-1996)" and "OU M203 (1997-2005)" -- but only when both titles
+# give them: "Misfits of Science - Complete Series 1985" and "Misfits Of Science
+# (Complete Series)" are one run.
+def run_years(x): return set(re.findall(r'\b(?:19|20)\d{2}\b', x['title']))
+
+runs=collections.defaultdict(list); rest=[]
+for x in recs:
+    if x['eps']>=6: runs[run_key(x)].append(x)
+    else: rest.append(x)
+clusters=[]
+for g in runs.values():
+    g.sort(key=lambda x:-x['eps'])
+    # greedy, largest first: each run joins the first cluster whose largest
+    # member it nearly matches, or starts its own
+    cl=[]
+    for x in g:
+        for c in cl:
+            top=c[0]
+            ya,yb=run_years(x),run_years(top)
+            if (x['eps']>=top['eps']*0.9 and (x['year']==top['year'] or not x['year'] or not top['year'])
+                and x['secs'] and top['secs']
+                and not (ya and yb and ya!=yb)
+                and abs(x['secs']-top['secs'])<=max(10,top['secs']*0.02)):
+                c.append(x); break
+        else: cl.append([x])
+    clusters+=cl
+recs,rerun=collapse(clusters)
+recs+=rest
+print('runs: dropped %d re-uploads of a whole run -> %d films' % (rerun,len(recs)))
+
+# ---------- stage 3d: a dated and an undated copy of one feature
+# The year is in the stage-3 key whenever an item has one, so "Fritz the Cat"
+# (1972) and an undated "Fritz the Cat" never meet. They are one picture when
+# their runtimes agree; a remake of the same name would not, and neither would
+# two different pictures that share a title, so both of those survive.
+feats=collections.defaultdict(list); rest=[]
+for x in recs:
+    # a feature may carry a trailer or extras, so up to three files still anchor
+    if not x['tv'] and x['eps']<=3 and x['secs']: feats[base_title(x)].append(x)
+    else: rest.append(x)
+groups=[]
+for g in feats.values():
+    dated=[x for x in g if x['year']]; undated=[x for x in g if not x['year']]
+    years={x['year'] for x in dated}
+    out=[[x] for x in dated]
+    for u in undated:
+        hit=[c for c in out if abs(c[0]['secs']-u['secs'])<=max(15,c[0]['secs']*0.03)]
+        # only when exactly one picture of that name is a match: two would make
+        # the undated copy ambiguous, and a wrong guess hides a film
+        if len(hit)==1 and len(years)==1: hit[0].append(u)
+        else: out.append([u])
+    groups+=out
+recs,undated=collapse(groups)
+recs+=rest
+print('undated: dropped %d undated copies of a dated feature -> %d films' % (undated,len(recs)))
+
+# ---------- stage 3e: the same upload, spelt two ways
+# What is left after the passes above is punctuation: "The Road to War (3/8) :
+# USSR" and "The Road To War ( 3-8) USSR", "10 Years Of Thomas VHS ( Blue Tape
+# Version)" and "10 Years Of Thomas 1999 VHS Blue Tape Version". The bracket
+# rules keep those keys apart, rightly in general. But two items that also run
+# to the same second and hold the same number of programmes are one upload.
+def loose_title(x):
+    t=re.sub(r'\b(18|19|20)\d{2}\b',' ',x['title'])
+    return re.sub(r'[^a-z0-9]','',NOISE.sub(' ',t).lower())
+bysig=collections.defaultdict(list); rest=[]
+for x in recs:
+    if x['secs']: bysig[(loose_title(x),x['secs'],x['eps'])].append(x)
+    else: rest.append(x)
+recs,spelt=collapse(bysig.values())
+recs+=rest
+print('spelling: dropped %d copies spelt another way -> %d films' % (spelt,len(recs)))
 
 # ---------- stage 4: assign decades, finalize genre list
 for x in recs:
@@ -418,7 +671,8 @@ out={
             ['gameshows','Game Shows Archive'],
             ['@oasisarcade','Oasis Arcade'],
             ['handpicked','Hand-picked'],
-            ['handpicked_films','Hand-picked films']],
+            ['handpicked_films','Hand-picked films'],
+            ['movies','Moving Image Archive (swept)']],
  'cats':[[c[0],c[1],c[2],c[3]] for c in cats],
  'fields':['id','title','video','year','downloads','seconds','cats','creator','alts','episodes'],
  'films':films_out,
